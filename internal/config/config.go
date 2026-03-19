@@ -16,7 +16,7 @@ type Config struct {
 
 type SignalConfig struct {
 	PhoneNumber string `mapstructure:"phone_number"`
-	DataPath    string `mapstructure:"data_path"`
+	APIURL      string `mapstructure:"api_url"`
 }
 
 type AgentConfig struct {
@@ -30,6 +30,15 @@ type ContactConfig struct {
 }
 
 func Load(cfgFile string) (*Config, error) {
+	viper.SetEnvPrefix("talktothem")
+	viper.AutomaticEnv()
+	viper.BindEnv("signal.api_url", "TALKTOTHEM_SIGNAL_API_URL")
+	viper.BindEnv("signal.phone_number", "TALKTOTHEM_SIGNAL_PHONE_NUMBER")
+	viper.BindEnv("agent.api_key", "TALKTOTHEM_AGENT_API_KEY")
+	viper.BindEnv("agent.model", "TALKTOTHEM_AGENT_MODEL")
+	viper.BindEnv("agent.base_url", "TALKTOTHEM_AGENT_BASE_URL")
+	viper.BindEnv("contact.data_path", "TALKTOTHEM_CONTACT_DATA_PATH")
+
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
@@ -59,9 +68,8 @@ func Load(cfgFile string) (*Config, error) {
 }
 
 func setDefaults(cfg *Config) {
-	if cfg.Signal.DataPath == "" {
-		home, _ := os.UserHomeDir()
-		cfg.Signal.DataPath = filepath.Join(home, ".config", "talktothem", "signal")
+	if cfg.Signal.APIURL == "" {
+		cfg.Signal.APIURL = "http://localhost:8080"
 	}
 	if cfg.Contact.DataPath == "" {
 		home, _ := os.UserHomeDir()

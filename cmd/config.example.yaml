@@ -3,7 +3,7 @@
 
 signal:
   phone_number: "+1234567890"
-  data_path: ""
+  api_url: "http://localhost:8080"  # signal-cli-rest-api endpoint
 
 agent:
   api_key: "sk-..."  # required
@@ -11,4 +11,4 @@ agent:
   base_url: ""  # optional, for OpenAI-compatible APIs
 
 contact:
-  data_path: ""
+  data_path: ""  # defaults to ~/.config/talktothem/contacts (or /app/data/contacts in Docker)

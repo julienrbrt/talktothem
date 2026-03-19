@@ -3,9 +3,11 @@ package cmd
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	sig "os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -18,6 +20,9 @@ import (
 	signalcli "github.com/julienrbrt/talktothem/internal/messenger/signal"
 	"github.com/spf13/cobra"
 )
+
+//go:embed config.example.yaml
+var exampleConfig string
 
 var cfgFile string
 
@@ -71,7 +76,7 @@ Automatically syncs history, learns style, and responds or initiates as needed.`
 				return fmt.Errorf("create contact manager: %w", err)
 			}
 
-			msgr := signalcli.New(cfg.Signal.PhoneNumber, signalcli.WithDataPath(cfg.Signal.DataPath))
+			msgr := signalcli.New(cfg.Signal.PhoneNumber, cfg.Signal.APIURL)
 
 			if dryRun {
 				return runDryRun()
@@ -308,42 +313,48 @@ func promptSelection(convs []conversation) (*conversation, error) {
 }
 
 func newConfigCommand() *cobra.Command {
+	var force bool
+	var outputPath string
+
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Manage configuration",
 	}
 
-	cmd.AddCommand(&cobra.Command{
+	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Create a sample configuration file",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, err := config.DefaultConfigPath()
-			if err != nil {
-				return err
+			path := outputPath
+			if path == "" {
+				var err error
+				path, err = config.DefaultConfigPath()
+				if err != nil {
+					return err
+				}
 			}
 
-			sample := `# TalkToThem Configuration
-# https://github.com/julienrbrt/talktothem
+			if _, err := os.Stat(path); err == nil && !force {
+				return fmt.Errorf("config file already exists at %s (use --force to overwrite)", path)
+			}
 
-signal:
-  phone_number: "+1234567890"
-  data_path: ""
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return fmt.Errorf("create config directory: %w", err)
+			}
 
-agent:
-  api_key: "sk-..."  # required
-  model: "gpt-4o"
-  base_url: ""  # optional, for OpenAI-compatible APIs
+			if err := os.WriteFile(path, []byte(exampleConfig), 0600); err != nil {
+				return fmt.Errorf("write config: %w", err)
+			}
 
-contact:
-  data_path: ""
-`
-
-			fmt.Printf("Sample configuration:\n\n%s\n", sample)
-			fmt.Printf("Save this to: %s\n", path)
+			fmt.Printf("Created config file: %s\n", path)
 			return nil
 		},
-	})
+	}
 
+	initCmd.Flags().BoolVarP(&force, "force", "f", false, "overwrite existing config")
+	initCmd.Flags().StringVarP(&outputPath, "output", "o", "", "output path (default: ~/.config/talktothem/config.yaml)")
+
+	cmd.AddCommand(initCmd)
 	return cmd
 }
 
