@@ -121,10 +121,10 @@ func runServe(cmd *cobra.Command, args []string) error {
 	signalCfg := db.GetMessengerConfig("signal")
 	if signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" {
 		msgr = signalcli.New(signalCfg.Phone, signalAPIURL)
-		fmt.Println("Connecting to Signal...")
+		fmt.Println("Connecting to messenger...")
 		if err := msgr.Connect(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to connect to Signal: %v\n", err)
-			fmt.Println("Continuing without Signal connection...")
+			fmt.Fprintf(os.Stderr, "Warning: failed to connect to the messenger: %v\n", err)
+			fmt.Println("Continuing without a messenger connection...")
 			msgr = nil
 		} else {
 			defer func() {
@@ -134,41 +134,33 @@ func runServe(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	var ag *agent.Agent
+	ag := agent.New(llmClient, contacts, dataPath, agent.WithVision(llmClient))
+
+	inbox := make(chan messenger.Message, 100)
 	if llmClient != nil {
-		ag = agent.New(llmClient, contacts, dataPath, agent.WithVision(llmClient))
-
-		if msgr != nil {
-			inbox := make(chan messenger.Message, 100)
-			msgr.OnMessage(func(msg messenger.Message) {
-				fmt.Printf("[OnMessage] Received message from %s: %s\n", msg.ContactID, msg.Content)
-				select {
-				case inbox <- msg:
-					fmt.Println("[OnMessage] Message sent to inbox")
-				default:
-					fmt.Println("[OnMessage] Inbox full, dropping message")
-				}
-			})
-			msgr.StartReceiving(ctx)
-			go ag.Run(ctx, inbox)
-
-			go func() {
-				for {
-					select {
-					case <-ctx.Done():
-						return
-					case resp := <-ag.Outbox():
-						fmt.Printf("[%s] Sending: %s\n", resp.ContactID, resp.Content)
-						if err := msgr.SendMessage(ctx, resp.ContactID, resp.Content); err != nil {
-							fmt.Fprintf(os.Stderr, "Failed to send: %v\n", err)
-						}
-					}
-				}
-			}()
-		}
+		go ag.Run(ctx, inbox)
 	}
 
 	server := api.NewServer(addr, ag, contacts, msgr, cfg, nil, signalAPIURL)
+
+	// This needs to be after server is created so we can broadcast
+	if msgr != nil {
+		msgr.OnMessage(func(msg messenger.Message) {
+			fmt.Printf("Received message from %s: %s\n", msg.ContactID, msg.Content)
+			server.BroadcastMessage(msg)
+			if err := ag.RecordMessage(context.Background(), msg); err != nil {
+				fmt.Fprintf(os.Stderr, "Error recording message: %v\n", err)
+			}
+			if llmClient != nil {
+				select {
+				case inbox <- msg:
+				default:
+					fmt.Println("Inbox full, dropping message for agent")
+				}
+			}
+		})
+		msgr.StartReceiving(ctx)
+	}
 
 	fmt.Printf("Starting server on %s\n", addr)
 	fmt.Println("Press Ctrl+C to stop.")

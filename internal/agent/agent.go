@@ -333,9 +333,6 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 }
 
 func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error {
-	if !msg.IsFromMe {
-		return nil
-	}
 	h, err := a.history(msg.ContactID)
 	if err != nil {
 		return err

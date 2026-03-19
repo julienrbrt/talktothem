@@ -155,7 +155,115 @@ async function initiateConversation(contactId) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', loadContacts);
+document.addEventListener('DOMContentLoaded', () => {
+    loadMessages().then(() => {
+        loadContacts();
+        connectWebSocket();
+    });
+});
+
+async function loadMessages() {
+    try {
+        const response = await fetch('/api/contacts/{{.Contact.ID}}/conversation');
+        if (response.ok) {
+            const html = await response.text();
+            const container = document.querySelector('.flex-1.overflow-y-auto');
+            if (container) {
+                container.innerHTML = html;
+                const messageDivs = container.querySelectorAll('[class*="rounded-lg"]');
+                messageDivs.forEach(div => {
+                    const timeText = div.querySelector('.text-gray-400, .text-blue-100');
+                    if (timeText) {
+                        loadedMessageIds.add(div.textContent.trim() + timeText.textContent);
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.error('Error loading messages:', e);
+    }
+}
+
+let ws = null;
+let currentContactId = '{{.Contact.ID}}';
+let loadedMessageIds = new Set();
+let initialized = false;
+
+function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'agent_response') {
+            const payload = data.payload;
+            if (payload.contactId === currentContactId) {
+                appendMessage({
+                    content: payload.content,
+                    isFromMe: true,
+                    timestamp: new Date()
+                });
+            }
+        } else if (data.type === 'new_message') {
+            const payload = data.payload;
+            if (payload.contactId === currentContactId) {
+                appendMessage({
+                    content: payload.content,
+                    isFromMe: payload.isFromMe,
+                    timestamp: payload.timestamp
+                });
+            }
+        }
+    };
+
+    ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting in 3s...');
+        setTimeout(connectWebSocket, 3000);
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+}
+
+function appendMessage(msg) {
+    const container = document.querySelector('.flex-1.overflow-y-auto');
+    if (!container) return;
+
+    const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const messageId = msg.content + time;
+
+    if (loadedMessageIds.has(messageId)) {
+        console.log('Duplicate message, skipping:', messageId);
+        return;
+    }
+
+    loadedMessageIds.add(messageId);
+
+    const emptyState = container.querySelector('.text-center');
+    if (emptyState) {
+        emptyState.remove();
+    }
+
+    const messageHtml = `
+        <div class="flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[70%] ${msg.isFromMe ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'} rounded-lg px-4 py-2 shadow-sm">
+                <p class="text-sm">${escapeHtml(msg.content)}</p>
+                <p class="text-xs ${msg.isFromMe ? 'text-blue-100' : 'text-gray-400'} mt-1">${time}</p>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 </script>
 </body>
 </html>

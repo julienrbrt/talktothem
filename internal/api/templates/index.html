@@ -238,14 +238,9 @@ async function submitOnboarding(e) {
             </svg>
             Your Profile
         </button>
-        <div id="connection-status" class="flex items-center gap-2 text-sm">
-            {{if .HasSignal}}
-            <span class="w-2 h-2 rounded-full bg-green-400"></span>
-            <span class="text-green-600">Signal Connected</span>
-            {{else}}
-            <span class="w-2 h-2 rounded-full bg-yellow-400"></span>
-            <span class="text-yellow-600">Signal Disconnected</span>
-            {{end}}
+        <div id="connection-status" class="flex items-center gap-2 text-sm" title="Connection status to the messengers">
+            <div id="connection-dot" class="w-3 h-3 rounded-full bg-gray-500"></div>
+            <span id="connection-text" class="text-gray-600">Disconnected</span>
         </div>
     </div>
 </aside>
@@ -735,8 +730,48 @@ async function activateAgent(contactId) {
     }
 }
 
+async function updateConnectionStatus() {
+    const statusDiv = document.getElementById('connection-status');
+    const statusText = document.getElementById('connection-text');
+    const statusDot = document.getElementById('connection-dot');
+
+    try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+
+        if (data.connectionStatus === 'connected') {
+            statusText.textContent = 'Connected';
+            statusDot.classList.remove('bg-gray-500');
+            statusDot.classList.add('bg-green-500');
+        } else {
+            statusText.textContent = 'Disconnected';
+            statusDot.classList.remove('bg-green-500');
+            statusDot.classList.add('bg-gray-500');
+        }
+
+        let tooltip = '';
+        if (data.messengers) {
+            for (const key in data.messengers) {
+                const messenger = data.messengers[key];
+                const status = messenger.enabled ? 'Connected' : 'Disconnected';
+                tooltip += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${status} (${messenger.phone || 'No number'})\n`;
+            }
+        }
+        statusDiv.title = tooltip.trim();
+
+    } catch (e) {
+        console.error('Error updating connection status:', e);
+        statusText.textContent = 'Status Unavailable';
+        statusDot.classList.remove('bg-green-500', 'bg-gray-500');
+        statusDot.classList.add('bg-red-500');
+    }
+}
+
 // Load contacts on page load
-document.addEventListener('DOMContentLoaded', loadContacts);
+document.addEventListener('DOMContentLoaded', () => {
+    loadContacts();
+    updateConnectionStatus();
+});
 
 </script>
 {{end}}

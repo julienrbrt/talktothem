@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"io/fs"
+	"log"
 	"net/http"
 	"time"
 
@@ -201,6 +202,28 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 func (s *Server) listenForAgentResponses() {
 	for resp := range s.agent.Outbox() {
+		// Send the message to the messenger
+		if s.messenger != nil {
+			err := s.messenger.SendMessage(context.Background(), resp.ContactID, resp.Content)
+			if err != nil {
+				log.Printf("Error sending agent message to messenger: %v", err)
+				// Decide if you want to continue or not
+			}
+		}
+
+		// Record the message in the conversation history
+		msg := messenger.Message{
+			ContactID: resp.ContactID,
+			Content:   resp.Content,
+			Type:      messenger.TypeText,
+			Timestamp: time.Now(),
+			IsFromMe:  true,
+		}
+		if err := s.agent.RecordMessage(context.Background(), msg); err != nil {
+			log.Printf("Error recording agent message: %v", err)
+		}
+
+		// Broadcast the message to the UI
 		event := MessageEvent{
 			Type: "agent_response",
 			Payload: map[string]string{
@@ -240,6 +263,11 @@ func (s *Server) broadcastEvent(eventType string, payload interface{}) {
 	data, _ := json.Marshal(event)
 	s.hub.broadcast <- data
 }
+
+func (s *Server) BroadcastMessage(msg messenger.Message) {
+	s.broadcastEvent("new_message", messageToResponse(msg))
+}
+
 
 type ContactResponse struct {
 	ID          string `json:"id"`
@@ -611,6 +639,14 @@ type StatusResponse struct {
 	HasAPIKey      bool   `json:"hasApiKey"`
 	SignalNumber   string `json:"signalNumber,omitempty"`
 	ConnectedCount int    `json:"connectedCount"`
+	ConnectionStatus string `json:"connectionStatus"`
+	Messengers     map[string]MessengerStatus `json:"messengers,omitempty"`
+}
+
+type MessengerStatus struct {
+	Enabled bool   `json:"enabled"`
+	Phone   string `json:"phone,omitempty"`
+	Connected bool `json:"connected,omitempty"`
 }
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
@@ -630,12 +666,31 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		signalNumber = signalCfg.Phone
 	}
 
+	messengers := make(map[string]MessengerStatus)
+	messengerTypes := []string{"signal", "whatsapp", "telegram"}
+	for _, mt := range messengerTypes {
+		cfg := db.GetMessengerConfig(mt)
+		if cfg != nil {
+			messengers[mt] = MessengerStatus{
+				Enabled: cfg.Enabled,
+				Phone:   cfg.Phone,
+			}
+		}
+	}
+
 	response := StatusResponse{
 		Onboarded:      hasAPIKey && hasSignal,
 		HasSignal:      hasSignal,
 		HasAPIKey:      hasAPIKey,
 		SignalNumber:   signalNumber,
 		ConnectedCount: connected,
+		Messengers:     messengers,
+	}
+
+	if response.HasSignal {
+		response.ConnectionStatus = "connected"
+	} else {
+		response.ConnectionStatus = "disconnected"
 	}
 
 	w.Header().Set("Content-Type", "application/json")
