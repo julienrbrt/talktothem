@@ -142,7 +142,10 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 		return "", err
 	}
 
-	messages := h.GetRecent(100)
+	messages := h.GetSince(time.Now().AddDate(0, -1, 0))
+	if len(messages) == 0 {
+		messages = h.GetRecent(100)
+	}
 	if len(messages) == 0 {
 		return "No messages to learn from", nil
 	}
@@ -164,6 +167,70 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(myMessages, "\n"))
 
 	return a.llm.Generate(ctx, prompt)
+}
+
+func (a *Agent) ShouldRespond(contactID string, within time.Duration) (needsResponse bool, lastMessage messenger.Message, err error) {
+	c, ok := a.contacts.Get(contactID)
+	if !ok || !c.Enabled {
+		return false, messenger.Message{}, nil
+	}
+
+	h, err := a.getHistory(contactID)
+	if err != nil {
+		return false, messenger.Message{}, fmt.Errorf("failed to get history: %w", err)
+	}
+
+	messages := h.GetRecent(1)
+	if len(messages) == 0 {
+		return false, messenger.Message{}, nil
+	}
+
+	lastMessage = messages[0]
+	if lastMessage.IsFromMe {
+		return false, lastMessage, nil
+	}
+
+	if time.Since(lastMessage.Timestamp) > within {
+		return false, lastMessage, nil
+	}
+
+	return true, lastMessage, nil
+}
+
+func (a *Agent) InitiateConversation(ctx context.Context, contactID string) (string, error) {
+	c, ok := a.contacts.Get(contactID)
+	if !ok {
+		return "", fmt.Errorf("contact not found: %s", contactID)
+	}
+
+	h, err := a.getHistory(contactID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get history: %w", err)
+	}
+
+	recent := h.GetRecent(10)
+
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(buildSystemPrompt(c))
+
+	if c.Style != "" {
+		fmt.Fprintf(&promptBuilder, "\nYour communication style: %s\n", c.Style)
+	}
+
+	if len(recent) > 0 {
+		promptBuilder.WriteString("\nRecent conversation history:\n")
+		for _, m := range recent {
+			if m.IsFromMe {
+				fmt.Fprintf(&promptBuilder, "You: %s\n", m.Content)
+			} else {
+				fmt.Fprintf(&promptBuilder, "%s: %s\n", c.Name, m.Content)
+			}
+		}
+	}
+
+	promptBuilder.WriteString("\nInitiate a natural, casual message to start or continue this conversation. Keep it brief and appropriate. Reply with only the message:")
+
+	return a.llm.Generate(ctx, promptBuilder.String())
 }
 
 func buildSystemPrompt(c contact.Contact) string {

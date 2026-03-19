@@ -14,6 +14,7 @@ type Contact struct {
 	Phone       string `json:"phone"`
 	Enabled     bool   `json:"enabled"`
 	Description string `json:"description"`
+	Style       string `json:"style"`
 }
 
 type Manager struct {
@@ -133,6 +134,20 @@ func (m *Manager) SetEnabled(id string, enabled bool) error {
 	}
 
 	c.Enabled = enabled
+	m.contacts[id] = c
+	return m.save()
+}
+
+func (m *Manager) SetStyle(id, style string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	c, ok := m.contacts[id]
+	if !ok {
+		return fmt.Errorf("contact not found: %s", id)
+	}
+
+	c.Style = style
 	m.contacts[id] = c
 	return m.save()
 }
