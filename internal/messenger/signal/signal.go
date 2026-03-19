@@ -8,15 +8,18 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
 type Client struct {
 	number    string
 	baseURL   string
+	wsURL     string
 	client    *http.Client
 	connected bool
 	mu        sync.RWMutex
@@ -29,11 +32,39 @@ func New(number, baseURL string) *Client {
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
+	wsURL := strings.Replace(baseURL, "http://", "ws://", 1)
+	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
 	return &Client{
 		number:  number,
 		baseURL: baseURL,
+		wsURL:   wsURL,
 		client:  &http.Client{Timeout: 30 * time.Second},
 	}
+}
+
+func NewWithoutNumber(baseURL string) *Client {
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	wsURL := strings.Replace(baseURL, "http://", "ws://", 1)
+	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
+	return &Client{
+		baseURL: baseURL,
+		wsURL:   wsURL,
+		client:  &http.Client{Timeout: 30 * time.Second},
+	}
+}
+
+func (c *Client) SetNumber(number string) {
+	c.number = number
+}
+
+func (c *Client) GetNumber() string {
+	return c.number
+}
+
+func (c *Client) GetBaseURL() string {
+	return c.baseURL
 }
 
 func (c *Client) Connect(ctx context.Context) error {
@@ -41,8 +72,11 @@ func (c *Client) Connect(ctx context.Context) error {
 	c.connected = true
 	c.mu.Unlock()
 
-	go c.receiveLoop(ctx)
 	return nil
+}
+
+func (c *Client) StartReceiving(ctx context.Context) {
+	go c.receiveLoop(ctx)
 }
 
 func (c *Client) Disconnect() error {
@@ -56,6 +90,97 @@ func (c *Client) IsConnected() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.connected
+}
+
+func (c *Client) StartLinking(ctx context.Context, deviceName string) ([]byte, error) {
+	endpoint := fmt.Sprintf("%s/v1/qrcodelink?device_name=%s", c.baseURL, url.QueryEscape(deviceName))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("get qr code: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get qr code failed: %s", string(body))
+	}
+
+	return io.ReadAll(resp.Body)
+}
+
+func (c *Client) GetLinkingURI(ctx context.Context, deviceName string) (string, error) {
+	endpoint := fmt.Sprintf("%s/v1/qrcodelink/raw?device_name=%s", c.baseURL, url.QueryEscape(deviceName))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("get linking uri: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("get linking uri failed: %s", string(body))
+	}
+
+	var result struct {
+		DeviceLinkURI string `json:"device_link_uri"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+
+	return result.DeviceLinkURI, nil
+}
+
+func (c *Client) ListAccounts(ctx context.Context) ([]string, error) {
+	endpoint := fmt.Sprintf("%s/v1/accounts", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("list accounts: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("list accounts failed: %s", string(body))
+	}
+
+	var accounts []string
+	if err := json.NewDecoder(resp.Body).Decode(&accounts); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+
+	return accounts, nil
+}
+
+func (c *Client) IsLinked(ctx context.Context) (bool, string, error) {
+	accounts, err := c.ListAccounts(ctx)
+	if err != nil {
+		return false, "", err
+	}
+
+	if len(accounts) > 0 {
+		return true, accounts[0], nil
+	}
+
+	return false, "", nil
 }
 
 func (c *Client) GetContacts(ctx context.Context) ([]messenger.Contact, error) {
@@ -217,6 +342,8 @@ func (c *Client) OnReaction(handler func(messenger.Message)) {
 }
 
 func (c *Client) receiveLoop(ctx context.Context) {
+	dialer := websocket.DefaultDialer
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -225,53 +352,107 @@ func (c *Client) receiveLoop(ctx context.Context) {
 		}
 
 		if !c.IsConnected() {
+			fmt.Println("[Signal] Not connected, stopping receive loop")
 			return
 		}
 
-		endpoint := fmt.Sprintf("%s/v1/receive/%s?timeout=60", c.baseURL, url.PathEscape(c.number))
+		endpoint := fmt.Sprintf("%s/v1/receive/%s", c.wsURL, url.PathEscape(c.number))
+		fmt.Printf("[Signal] Connecting to WebSocket: %s\n", endpoint)
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		conn, _, err := dialer.DialContext(ctx, endpoint, nil)
 		if err != nil {
+			fmt.Printf("[Signal] WebSocket dial error: %v, retrying in 5s...\n", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
+		fmt.Println("[Signal] WebSocket connected, waiting for messages...")
 
-		resp, err := c.client.Do(req)
-		if err != nil {
-			time.Sleep(5 * time.Second)
-			continue
-		}
+		// Set up ping handler to keep connection alive
+		conn.SetPingHandler(func(appData string) error {
+			fmt.Println("[Signal] Received ping, sending pong")
+			return conn.WriteMessage(websocket.PongMessage, nil)
+		})
 
-		if resp.StatusCode != http.StatusOK {
-			resp.Body.Close()
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		var rawMessages []json.RawMessage
-		if err := json.NewDecoder(resp.Body).Decode(&rawMessages); err != nil {
-			resp.Body.Close()
-			if err == io.EOF {
-				continue
-			}
-			time.Sleep(1 * time.Second)
-			continue
-		}
-		resp.Body.Close()
-
-		for _, raw := range rawMessages {
-			msg := c.parseMessage(raw, "")
-			if msg == nil || msg.IsFromMe {
-				continue
+		for {
+			select {
+			case <-ctx.Done():
+				conn.Close()
+				return
+			default:
 			}
 
-			if msg.Type == messenger.TypeReaction {
-				if c.reactionHandler != nil {
-					c.reactionHandler(*msg)
+			// Set read deadline to detect stale connections
+			if err := conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
+				fmt.Printf("[Signal] Failed to set read deadline: %v\n", err)
+				break
+			}
+
+			messageType, raw, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+					fmt.Printf("[Signal] WebSocket closed normally: %v\n", err)
+				} else if err.Error() == "read timeout" || strings.Contains(err.Error(), "timeout") {
+					fmt.Println("[Signal] Read timeout, connection still alive, continuing...")
+					continue
+				} else {
+					fmt.Printf("[Signal] WebSocket read error: %v\n", err)
 				}
-			} else {
-				if c.messageHandler != nil {
-					c.messageHandler(*msg)
+				conn.Close()
+				time.Sleep(2 * time.Second)
+				break
+			}
+
+			fmt.Printf("[Signal] Received WebSocket message type=%d, %d bytes\n", messageType, len(raw))
+			fmt.Printf("[Signal] Raw content: %s\n", string(raw))
+
+			var rawMessages []json.RawMessage
+			if err := json.Unmarshal(raw, &rawMessages); err != nil {
+				// Maybe it's a single message, not an array
+				var singleMsg json.RawMessage
+				if err2 := json.Unmarshal(raw, &singleMsg); err2 == nil {
+					rawMessages = []json.RawMessage{singleMsg}
+				} else {
+					fmt.Printf("[Signal] Failed to unmarshal messages: %v\n", err)
+					continue
+				}
+			}
+
+			fmt.Printf("[Signal] Parsed %d message envelopes\n", len(rawMessages))
+
+			for _, raw := range rawMessages {
+				msg := c.parseMessage(raw, "")
+				if msg == nil {
+					// Try unwrapping from "envelope" key (json-rpc mode format)
+					var wrapped struct {
+						Envelope json.RawMessage `json:"envelope"`
+					}
+					if err := json.Unmarshal(raw, &wrapped); err == nil && wrapped.Envelope != nil {
+						msg = c.parseMessage(wrapped.Envelope, "")
+					}
+				}
+				if msg == nil {
+					fmt.Println("[Signal] Parsed nil message, skipping")
+					continue
+				}
+				if msg.IsFromMe {
+					fmt.Printf("[Signal] Message from me to %s, skipping\n", msg.ContactID)
+					continue
+				}
+				if msg.Content == "" && msg.Type != messenger.TypeReaction {
+					fmt.Println("[Signal] Empty content, skipping (likely a receipt)")
+					continue
+				}
+
+				fmt.Printf("[Signal] Received message from %s: %s\n", msg.ContactID, msg.Content)
+
+				if msg.Type == messenger.TypeReaction {
+					if c.reactionHandler != nil {
+						c.reactionHandler(*msg)
+					}
+				} else {
+					if c.messageHandler != nil {
+						c.messageHandler(*msg)
+					}
 				}
 			}
 		}

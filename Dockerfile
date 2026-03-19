@@ -18,4 +18,7 @@ WORKDIR /app
 
 COPY --from=builder /talktothem /app/talktothem
 
+EXPOSE 8080
+
 ENTRYPOINT ["/app/talktothem"]
+CMD ["serve"]

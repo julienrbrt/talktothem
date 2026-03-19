@@ -43,4 +43,5 @@ type Messenger interface {
 
 	OnMessage(handler func(Message))
 	OnReaction(handler func(Message))
+	StartReceiving(ctx context.Context)
 }

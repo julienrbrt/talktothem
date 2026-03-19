@@ -5,11 +5,11 @@ services:
     environment:
       - MODE=json-rpc
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
-      - ./data/signal:/home/.local/share/signal-cli
+      - ./data/signal:/home/.local/share/signal-cli:z
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/v1/about"]
+      test: ["CMD", "timeout", "5", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -22,11 +22,12 @@ services:
     depends_on:
       signal-api:
         condition: service_healthy
+    ports:
+      - "8080:8080"
     environment:
-      - TALKTOTHEM_SIGNAL_API_URL=http://signal-api:8080
-      - TALKTOTHEM_CONTACT_DATA_PATH=/app/data/contacts
+      - TALKTOTHEM_DATA_PATH=/app/data
+      - SIGNAL_API_URL=http://signal-api:8080
     volumes:
-      - ./config.yaml:/app/config.yaml:ro
-      - ./data/contacts:/app/data/contacts
-    command: ["run"]
+      - ./data:/app/data:z
+    command: ["serve", "--addr", ":8080"]
     restart: unless-stopped

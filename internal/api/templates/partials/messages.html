@@ -1,0 +1,15 @@
+{{range .}}
+<div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}}">
+    <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg {{if .IsFromMe}}bg-blue-600 text-white{{else}}bg-white border border-gray-200{{end}}">
+        <p class="text-sm">{{.Content}}</p>
+        <p class="text-xs {{if .IsFromMe}}text-blue-200{{else}}text-gray-400{{end}} mt-1">{{.Timestamp.Format "15:04"}}</p>
+        {{if .Reaction}}
+        <p class="text-xs mt-1">{{.Reaction}}</p>
+        {{end}}
+    </div>
+</div>
+{{else}}
+<div class="flex items-center justify-center h-full">
+    <p class="text-gray-500">No messages yet</p>
+</div>
+{{end}}

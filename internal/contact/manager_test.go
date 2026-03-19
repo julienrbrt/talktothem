@@ -2,9 +2,9 @@ package contact
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
+	"github.com/julienrbrt/talktothem/internal/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -13,6 +13,9 @@ func TestManager(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "talktothem-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
+
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
 
 	m, err := NewManager(tmpDir)
 	require.NoError(t, err)
@@ -64,6 +67,9 @@ func TestManagerPersistence(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
+
 	m1, err := NewManager(tmpDir)
 	require.NoError(t, err)
 
@@ -86,8 +92,12 @@ func TestManagerPersistence(t *testing.T) {
 }
 
 func TestManagerEmptyDirectory(t *testing.T) {
-	tmpDir := filepath.Join(os.TempDir(), "talktothem-empty-test")
+	tmpDir, err := os.MkdirTemp("", "talktothem-test")
+	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
+
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
 
 	m, err := NewManager(tmpDir)
 	require.NoError(t, err)

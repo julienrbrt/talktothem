@@ -269,21 +269,27 @@ func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error 
 }
 
 func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
+	fmt.Println("[Agent] Run loop started")
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Println("[Agent] Context done, stopping")
 			return
 		case msg, ok := <-in:
 			if !ok {
+				fmt.Println("[Agent] Inbox closed, stopping")
 				return
 			}
+			fmt.Printf("[Agent] Received message from %s: %s\n", msg.ContactID, msg.Content)
 			if msg.IsFromMe {
+				fmt.Println("[Agent] Message is from me, recording only")
 				_ = a.RecordMessage(ctx, msg)
 				continue
 			}
 
 			resp, err := a.Respond(ctx, msg)
 			if err != nil {
+				fmt.Printf("[Agent] Respond error: %v\n", err)
 				if errors.Is(err, ErrContactDisabled) || errors.Is(err, ErrContactNotFound) {
 					continue
 				}
@@ -291,9 +297,12 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 			}
 
 			if resp != "" {
+				fmt.Printf("[Agent] Generated response: %s\n", resp)
 				select {
 				case a.outbox <- Response{Content: resp, ContactID: msg.ContactID}:
+					fmt.Println("[Agent] Response sent to outbox")
 				default:
+					fmt.Println("[Agent] Outbox full, dropping response")
 				}
 			}
 		}

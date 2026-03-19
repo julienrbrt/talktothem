@@ -1,153 +1,47 @@
 package contact
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
+	"github.com/julienrbrt/talktothem/internal/db"
 )
 
-type Contact struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Phone       string `json:"phone"`
-	Enabled     bool   `json:"enabled"`
-	Description string `json:"description"`
-	Style       string `json:"style"`
-}
+type Contact = db.Contact
 
-type Manager struct {
-	mu       sync.RWMutex
-	contacts map[string]Contact
-	filePath string
-}
+type Manager struct{}
 
 func NewManager(dataPath string) (*Manager, error) {
-	if err := os.MkdirAll(dataPath, 0o750); err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	filePath := filepath.Join(dataPath, "contacts.json")
-	m := &Manager{
-		contacts: make(map[string]Contact),
-		filePath: filePath,
-	}
-
-	if err := m.load(); err != nil {
-		return nil, err
-	}
-
-	return m, nil
-}
-
-func (m *Manager) load() error {
-	data, err := os.ReadFile(m.filePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("failed to read contacts file: %w", err)
-	}
-
-	var contacts []Contact
-	if err := json.Unmarshal(data, &contacts); err != nil {
-		return fmt.Errorf("failed to unmarshal contacts: %w", err)
-	}
-
-	for _, c := range contacts {
-		m.contacts[c.ID] = c
-	}
-
-	return nil
-}
-
-func (m *Manager) save() error {
-	contacts := make([]Contact, 0, len(m.contacts))
-	for _, c := range m.contacts {
-		contacts = append(contacts, c)
-	}
-
-	data, err := json.MarshalIndent(contacts, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal contacts: %w", err)
-	}
-
-	return os.WriteFile(m.filePath, data, 0o600)
+	return &Manager{}, nil
 }
 
 func (m *Manager) Add(contact Contact) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.contacts[contact.ID] = contact
-	return m.save()
+	return db.DB.Save(&contact).Error
 }
 
 func (m *Manager) Remove(id string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	delete(m.contacts, id)
-	return m.save()
+	return db.DB.Delete(&Contact{}, "id = ?", id).Error
 }
 
 func (m *Manager) Get(id string) (Contact, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	c, ok := m.contacts[id]
-	return c, ok
+	var contact Contact
+	result := db.DB.First(&contact, "id = ?", id)
+	return contact, result.Error == nil
 }
 
 func (m *Manager) List() []Contact {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	contacts := make([]Contact, 0, len(m.contacts))
-	for _, c := range m.contacts {
-		contacts = append(contacts, c)
-	}
+	var contacts []Contact
+	db.DB.Order("COALESCE((SELECT MAX(timestamp) FROM messages WHERE messages.contact_id = contacts.id), 0) DESC").Find(&contacts)
 	return contacts
 }
 
 func (m *Manager) ListEnabled() []Contact {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
 	var contacts []Contact
-	for _, c := range m.contacts {
-		if c.Enabled {
-			contacts = append(contacts, c)
-		}
-	}
+	db.DB.Where("enabled = ?", true).Order("COALESCE((SELECT MAX(timestamp) FROM messages WHERE messages.contact_id = contacts.id), 0) DESC").Find(&contacts)
 	return contacts
 }
 
 func (m *Manager) SetEnabled(id string, enabled bool) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	c, ok := m.contacts[id]
-	if !ok {
-		return fmt.Errorf("contact not found: %s", id)
-	}
-
-	c.Enabled = enabled
-	m.contacts[id] = c
-	return m.save()
+	return db.DB.Model(&Contact{}).Where("id = ?", id).Update("enabled", enabled).Error
 }
 
 func (m *Manager) SetStyle(id, style string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	c, ok := m.contacts[id]
-	if !ok {
-		return fmt.Errorf("contact not found: %s", id)
-	}
-
-	c.Style = style
-	m.contacts[id] = c
-	return m.save()
+	return db.DB.Model(&Contact{}).Where("id = ?", id).Update("style", style).Error
 }

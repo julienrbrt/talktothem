@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/julienrbrt/talktothem/internal/db"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,9 @@ func TestHistory(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "talktothem-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
+
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
 
 	h, err := NewHistory(tmpDir, "test-contact")
 	require.NoError(t, err)
@@ -72,6 +76,9 @@ func TestHistoryPersistence(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
+
 	h1, err := NewHistory(tmpDir, "persist-test")
 	require.NoError(t, err)
 
@@ -113,11 +120,15 @@ func (m *mockMessenger) SendReaction(_ context.Context, _, _, _ string) error {
 }
 func (m *mockMessenger) OnMessage(_ func(messenger.Message))   {}
 func (m *mockMessenger) OnReaction(_ func(messenger.Message))  {}
+func (m *mockMessenger) StartReceiving(_ context.Context)      {}
 
 func TestHistorySync(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "talktothem-test")
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
+
+	err = db.Init(tmpDir)
+	require.NoError(t, err)
 
 	now := time.Now()
 	mock := &mockMessenger{

@@ -2,133 +2,160 @@ package conversation
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
-	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/julienrbrt/talktothem/internal/db"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
 type History struct {
-	mu       sync.RWMutex
-	messages []messenger.Message
-	filePath string
-}
-
-type historyFile struct {
-	Messages []messenger.Message `json:"messages"`
+	contactID string
 }
 
 func NewHistory(dataPath, contactID string) (*History, error) {
-	if err := os.MkdirAll(dataPath, 0o750); err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	filePath := filepath.Join(dataPath, contactID+".json")
-	h := &History{
-		filePath: filePath,
-		messages: make([]messenger.Message, 0),
-	}
-
-	if err := h.load(); err != nil {
-		return nil, err
-	}
-
-	return h, nil
-}
-
-func (h *History) load() error {
-	data, err := os.ReadFile(h.filePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("failed to read history file: %w", err)
-	}
-
-	var hf historyFile
-	if err := json.Unmarshal(data, &hf); err != nil {
-		return fmt.Errorf("failed to unmarshal history: %w", err)
-	}
-
-	h.messages = hf.Messages
-	return nil
-}
-
-func (h *History) save() error {
-	hf := historyFile{Messages: h.messages}
-	data, err := json.MarshalIndent(hf, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal history: %w", err)
-	}
-
-	return os.WriteFile(h.filePath, data, 0o600)
+	return &History{contactID: contactID}, nil
 }
 
 func (h *History) Add(msg messenger.Message) error {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	if msg.ID == "" {
+		msg.ID = uuid.New().String()
+	}
 
-	h.messages = append(h.messages, msg)
-	sort.Slice(h.messages, func(i, j int) bool {
-		return h.messages[i].Timestamp.Before(h.messages[j].Timestamp)
-	})
+	dbMsg := db.Message{
+		ID:        msg.ID,
+		ContactID: h.contactID,
+		Content:   msg.Content,
+		Type:      string(msg.Type),
+		MediaURL:  msg.MediaURL,
+		Timestamp: msg.Timestamp.UnixMilli(),
+		IsFromMe:  msg.IsFromMe,
+		Reaction:  msg.Reaction,
+	}
 
-	return h.save()
+	return db.DB.Create(&dbMsg).Error
 }
 
 func (h *History) GetRecent(limit int) []messenger.Message {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	var dbMessages []db.Message
+	query := db.DB.Where("contact_id = ?", h.contactID).Order("timestamp DESC")
 
-	if limit <= 0 || limit > len(h.messages) {
-		return h.messages
+	if limit > 0 {
+		query = query.Limit(limit)
 	}
 
-	start := len(h.messages) - limit
-	return h.messages[start:]
+	if err := query.Find(&dbMessages).Error; err != nil {
+		return nil
+	}
+
+	// Reverse to get chronological order (oldest first)
+	for i, j := 0, len(dbMessages)-1; i < j; i, j = i+1, j-1 {
+		dbMessages[i], dbMessages[j] = dbMessages[j], dbMessages[i]
+	}
+
+	messages := make([]messenger.Message, len(dbMessages))
+	for i, m := range dbMessages {
+		messages[i] = messenger.Message{
+			ID:        m.ID,
+			ContactID: m.ContactID,
+			Content:   m.Content,
+			Type:      messenger.MessageType(m.Type),
+			MediaURL:  m.MediaURL,
+			Timestamp: time.UnixMilli(m.Timestamp),
+			IsFromMe:  m.IsFromMe,
+			Reaction:  m.Reaction,
+		}
+	}
+
+	return messages
 }
 
 func (h *History) GetSince(since time.Time) []messenger.Message {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	var dbMessages []db.Message
+	if err := db.DB.Where("contact_id = ? AND timestamp > ?", h.contactID, since.UnixMilli()).Order("timestamp ASC").Find(&dbMessages).Error; err != nil {
+		return nil
+	}
 
-	var result []messenger.Message
-	for _, msg := range h.messages {
-		if msg.Timestamp.After(since) {
-			result = append(result, msg)
+	messages := make([]messenger.Message, len(dbMessages))
+	for i, m := range dbMessages {
+		messages[i] = messenger.Message{
+			ID:        m.ID,
+			ContactID: m.ContactID,
+			Content:   m.Content,
+			Type:      messenger.MessageType(m.Type),
+			MediaURL:  m.MediaURL,
+			Timestamp: time.UnixMilli(m.Timestamp),
+			IsFromMe:  m.IsFromMe,
+			Reaction:  m.Reaction,
 		}
 	}
-	return result
+
+	return messages
 }
 
 func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID string) error {
 	msgs, err := m.GetConversation(ctx, contactID, 0)
 	if err != nil {
-		return fmt.Errorf("failed to get conversation: %w", err)
-	}
-
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	existingIDs := make(map[string]bool)
-	for _, msg := range h.messages {
-		existingIDs[msg.ID] = true
+		return err
 	}
 
 	for _, msg := range msgs {
-		if !existingIDs[msg.ID] {
-			h.messages = append(h.messages, msg)
+		if msg.ID == "" {
+			msg.ID = uuid.New().String()
+		}
+
+		var existing db.Message
+		result := db.DB.Where("id = ? OR (contact_id = ? AND timestamp = ? AND is_from_me = ?)",
+			msg.ID, h.contactID, msg.Timestamp.UnixMilli(), msg.IsFromMe).First(&existing)
+
+		if result.Error != nil {
+			dbMsg := db.Message{
+				ID:        msg.ID,
+				ContactID: h.contactID,
+				Content:   msg.Content,
+				Type:      string(msg.Type),
+				MediaURL:  msg.MediaURL,
+				Timestamp: msg.Timestamp.UnixMilli(),
+				IsFromMe:  msg.IsFromMe,
+				Reaction:  msg.Reaction,
+			}
+			db.DB.Create(&dbMsg)
 		}
 	}
 
-	sort.Slice(h.messages, func(i, j int) bool {
-		return h.messages[i].Timestamp.Before(h.messages[j].Timestamp)
-	})
+	return nil
+}
 
-	return h.save()
+func GetAllContactIDs() ([]string, error) {
+	var contactIDs []string
+	if err := db.DB.Model(&db.Message{}).Distinct("contact_id").Pluck("contact_id", &contactIDs).Error; err != nil {
+		return nil, err
+	}
+	return contactIDs, nil
+}
+
+func GetLastMessage(contactID string) (*messenger.Message, error) {
+	var dbMsg db.Message
+	if err := db.DB.Where("contact_id = ?", contactID).Order("timestamp DESC").First(&dbMsg).Error; err != nil {
+		return nil, err
+	}
+
+	return &messenger.Message{
+		ID:        dbMsg.ID,
+		ContactID: dbMsg.ContactID,
+		Content:   dbMsg.Content,
+		Type:      messenger.MessageType(dbMsg.Type),
+		MediaURL:  dbMsg.MediaURL,
+		Timestamp: time.UnixMilli(dbMsg.Timestamp),
+		IsFromMe:  dbMsg.IsFromMe,
+		Reaction:  dbMsg.Reaction,
+	}, nil
+}
+
+func GetMessageCount(contactID string) (int, error) {
+	var count int64
+	if err := db.DB.Model(&db.Message{}).Where("contact_id = ?", contactID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return int(count), nil
 }

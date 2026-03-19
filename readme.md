@@ -10,6 +10,7 @@ TalkToThem learns your conversation style by analyzing your message history, the
 - **Multi-modal**: Sees images and can react to messages with appropriate responses
 - **Contact-specific**: Understands different relationships and adjusts accordingly
 - **Hands-free conversations**: Let the agent maintain your social connections
+- **Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
 
 ## Supported Messengers
 
@@ -28,28 +29,17 @@ TalkToThem learns your conversation style by analyzing your message history, the
 git clone https://github.com/julienrbrt/talktothem.git
 cd talktothem
 
-# Create config file (or use: go run . config init)
-cat > config.yaml << 'EOF'
-signal:
-  phone_number: "+1234567890"
-  api_url: "http://localhost:8080"
-
-agent:
-  api_key: "sk-..."  # your OpenAI API key
-  model: "gpt-4o"
-
-contact:
-  data_path: ""
-EOF
-
 # Create data directories
-mkdir -p data/signal data/contacts
+mkdir -p data/signal
 
 # Start services
 docker compose up -d
 
+# Open the web UI and complete onboarding
+# http://localhost:8080
+
 # Link Signal device (first time only)
-# Open http://localhost:8080/v1/qrcodelink?device_name=talktothem
+# Open http://localhost:8081/v1/qrcodelink?device_name=talktothem
 # Scan QR code with Signal mobile app (Settings > Linked Devices > +)
 
 # View logs
@@ -58,7 +48,7 @@ docker compose logs -f talktothem
 
 Data is stored in `./data/`:
 - `data/signal/` - Signal registration keys
-- `data/contacts/` - Contact settings and learned styles
+- `data/talktothem.db` - SQLite database (config, contacts, messages)
 
 ### Option 2: Install Binary
 
@@ -68,55 +58,45 @@ go install github.com/julienrbrt/talktothem@latest
 
 Requires a running [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) instance.
 
-### Configuration
-
-Create `~/.config/talktothem/config.yaml`:
-
-```yaml
-signal:
-  phone_number: "+1234567890"
-  api_url: "http://localhost:8080"  # signal-cli-rest-api endpoint
-
-agent:
-  api_key: "sk-..."  # OpenAI API key
-  model: "gpt-4o"
-  base_url: ""  # optional, for OpenAI-compatible APIs
-
-contact:
-  data_path: ""  # optional, defaults to ~/.config/talktothem/contacts
-```
-
-Environment variables are also supported: `TALKTOTHEM_SIGNAL_API_URL`, `TALKTOTHEM_AGENT_API_KEY`, etc.
-
 ### Usage
 
 ```bash
-# Initialize config file
-talktothem config init
-talktothem config init -o ./config.yaml  # custom path
-talktothem config init -f                # force overwrite
+# Start the web server
+talktothem serve
+talktothem serve --addr :3000  # custom port
 
-# Interactive mode - select contact from list
-talktothem run
-
-# Specify contact directly
-talktothem run "+1234567890"
-talktothem run "Mom"
-
-# Options
-talktothem run --dry-run              # Preview without sending
-talktothem run --initiate             # Start conversation if no response needed
-talktothem run --response-window 48h  # Response window (default: 24h)
+# Data is stored in ~/.config/talktothem/ by default
+# Override with TALKTOTHEM_DATA_PATH environment variable
 ```
+
+### Configuration
+
+Configuration is done through the web UI during onboarding. Settings are stored in the SQLite database:
+
+- **Signal Phone Number** - Your Signal phone number
+- **Signal API URL** - URL of your signal-cli-rest-api instance (default: http://localhost:8080)
+- **OpenAI API Key** - Your OpenAI API key
+- **Model** - OpenAI model to use (default: gpt-4o)
+- **Base URL** - Optional, for OpenAI-compatible APIs
+
+Environment variable: `TALKTOTHEM_DATA_PATH` - Path to store database (default: `~/.config/talktothem/`)
 
 ## How It Works
 
-1. **Connect** your Signal account
-2. **Select** a contact to talk to
-3. **Let it learn** from your conversation history
-4. **Enable** the agent to respond on your behalf
+1. **Connect** your Signal account via the web UI
+2. **Configure** your OpenAI API key in onboarding
+3. **Import** contacts from Signal or upload vCard files
+4. **Let it learn** from your conversation history (sync button)
+5. **Enable** the agent for specific contacts
 
 The agent continuously improves as it observes more of your conversations.
+
+## Architecture
+
+- **Backend**: Go with Chi router
+- **Database**: SQLite (via github.com/glebarez/sqlite)
+- **Frontend**: Go templates + HTMX + Tailwind CSS
+- **AI**: OpenAI API (or compatible)
 
 ## Disclaimer
 
