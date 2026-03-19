@@ -8,8 +8,8 @@ import (
 type MessageType string
 
 const (
-	TypeText  MessageType = "text"
-	TypeImage MessageType = "image"
+	TypeText     MessageType = "text"
+	TypeImage    MessageType = "image"
 	TypeReaction MessageType = "reaction"
 )
 
@@ -43,8 +43,4 @@ type Messenger interface {
 
 	OnMessage(handler func(Message))
 	OnReaction(handler func(Message))
-}
-
-type Client struct {
-	Messenger Messenger
 }

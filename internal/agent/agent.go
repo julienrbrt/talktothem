@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,44 +13,67 @@ import (
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
-type Generator interface {
+var (
+	ErrContactNotFound   = errors.New("contact not found")
+	ErrContactDisabled   = errors.New("contact disabled")
+	ErrNoMessages        = errors.New("no messages to learn from")
+	ErrNoUserMessages    = errors.New("no user messages to learn from")
+	ErrNoResponseNeeded  = errors.New("no response needed")
+)
+
+type LLM interface {
 	Generate(ctx context.Context, prompt string) (string, error)
 }
 
-type Describer interface {
+type Vision interface {
 	Describe(ctx context.Context, imageData []byte) (string, error)
 }
 
+type Response struct {
+	Content   string
+	ContactID string
+}
+
+type ResponseCheck struct {
+	Needed     bool
+	LastSender string
+	LastAt     time.Time
+}
+
 type Agent struct {
-	llm             Generator
-	describer       Describer
-	contacts        *contact.Manager
-	histories       map[string]*conversation.History
-	historyMu       sync.RWMutex
-	dataPath        string
-	messageHandler  func(messenger.Message)
-	reactionHandler func(messenger.Message)
+	llm       LLM
+	vision    Vision
+	contacts  *contact.Manager
+	histories map[string]*conversation.History
+	historyMu sync.RWMutex
+	dataPath  string
+
+	outbox chan Response
 }
 
-func New(llm Generator, describer Describer, contacts *contact.Manager, dataPath string) *Agent {
-	return &Agent{
+type Option func(*Agent)
+
+func WithVision(v Vision) Option {
+	return func(a *Agent) { a.vision = v }
+}
+
+func New(llm LLM, contacts *contact.Manager, dataPath string, opts ...Option) *Agent {
+	a := &Agent{
 		llm:       llm,
-		describer: describer,
 		contacts:  contacts,
-		histories: make(map[string]*conversation.History),
 		dataPath:  dataPath,
+		histories: make(map[string]*conversation.History),
+		outbox:    make(chan Response, 100),
 	}
+	for _, opt := range opts {
+		opt(a)
+	}
+	return a
 }
 
-func (a *Agent) OnMessage(handler func(messenger.Message)) {
-	a.messageHandler = handler
-}
+func (a *Agent) Outbox() <-chan Response { return a.outbox }
 
-func (a *Agent) OnReaction(handler func(messenger.Message)) {
-	a.reactionHandler = handler
-}
-
-func (a *Agent) getHistory(contactID string) (*conversation.History, error) {
+func (a *Agent) history(contactID string) (*conversation.History, error) {
 	a.historyMu.RLock()
 	if h, ok := a.histories[contactID]; ok {
 		a.historyMu.RUnlock()
@@ -60,6 +84,10 @@ func (a *Agent) getHistory(contactID string) (*conversation.History, error) {
 	a.historyMu.Lock()
 	defer a.historyMu.Unlock()
 
+	if h, ok := a.histories[contactID]; ok {
+		return h, nil
+	}
+
 	h, err := conversation.NewHistory(a.dataPath, contactID)
 	if err != nil {
 		return nil, err
@@ -69,26 +97,29 @@ func (a *Agent) getHistory(contactID string) (*conversation.History, error) {
 }
 
 func (a *Agent) SyncHistory(ctx context.Context, m messenger.Messenger, contactID string) error {
-	h, err := a.getHistory(contactID)
+	h, err := a.history(contactID)
 	if err != nil {
 		return err
 	}
 	return h.Sync(ctx, m, contactID)
 }
 
-func (a *Agent) ProcessMessage(ctx context.Context, msg messenger.Message) (string, error) {
+func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, error) {
 	c, ok := a.contacts.Get(msg.ContactID)
-	if !ok || !c.Enabled {
-		return "", nil
+	if !ok {
+		return "", fmt.Errorf("%w: %s", ErrContactNotFound, msg.ContactID)
+	}
+	if !c.Enabled {
+		return "", ErrContactDisabled
 	}
 
-	h, err := a.getHistory(msg.ContactID)
+	h, err := a.history(msg.ContactID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get history: %w", err)
+		return "", fmt.Errorf("get history: %w", err)
 	}
 
 	if err := h.Add(msg); err != nil {
-		return "", fmt.Errorf("failed to add message to history: %w", err)
+		return "", fmt.Errorf("add to history: %w", err)
 	}
 
 	return a.generateResponse(ctx, c, h, msg)
@@ -97,47 +128,34 @@ func (a *Agent) ProcessMessage(ctx context.Context, msg messenger.Message) (stri
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
 	recent := h.GetRecent(20)
 
-	var promptBuilder strings.Builder
-	promptBuilder.WriteString(buildSystemPrompt(c))
-	promptBuilder.WriteString("\n\nConversation history:\n")
+	var b strings.Builder
+	b.WriteString(systemPrompt(c))
+	b.WriteString("\n\nConversation history:\n")
 
 	for _, m := range recent {
 		if m.IsFromMe {
-			fmt.Fprintf(&promptBuilder, "You: %s\n", m.Content)
+			fmt.Fprintf(&b, "You: %s\n", m.Content)
 		} else {
-			fmt.Fprintf(&promptBuilder, "%s: %s\n", c.Name, m.Content)
+			fmt.Fprintf(&b, "%s: %s\n", c.Name, m.Content)
 		}
 	}
 
-	if msg.Type == messenger.TypeImage && a.describer != nil {
-		description, err := a.describer.Describe(ctx, []byte(msg.MediaURL))
+	if msg.Type == messenger.TypeImage && a.vision != nil {
+		desc, err := a.vision.Describe(ctx, []byte(msg.MediaURL))
 		if err != nil {
-			description = "[Unable to describe image]"
+			desc = "[Unable to describe image]"
 		}
-		fmt.Fprintf(&promptBuilder, "\n%s sent an image: %s\n", c.Name, description)
+		fmt.Fprintf(&b, "\n%s sent an image: %s\n", c.Name, desc)
 	}
 
-	fmt.Fprintf(&promptBuilder, "\n%s: %s\n", c.Name, msg.Content)
-	promptBuilder.WriteString("\nRespond naturally as if you were the user:")
+	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
+	b.WriteString("\nRespond naturally as if you were the user:")
 
-	return a.llm.Generate(ctx, promptBuilder.String())
-}
-
-func (a *Agent) GenerateReaction(ctx context.Context, msg messenger.Message) (string, error) {
-	c, ok := a.contacts.Get(msg.ContactID)
-	if !ok || !c.Enabled {
-		return "", nil
-	}
-
-	prompt := fmt.Sprintf(`You are %s. Your contact %s sent: "%s"
-
-What emoji reaction would you naturally give? Reply with ONLY a single emoji.`, "the user", c.Name, msg.Content)
-
-	return a.llm.Generate(ctx, prompt)
+	return a.llm.Generate(ctx, b.String())
 }
 
 func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error) {
-	h, err := a.getHistory(contactID)
+	h, err := a.history(contactID)
 	if err != nil {
 		return "", err
 	}
@@ -147,136 +165,150 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 		messages = h.GetRecent(100)
 	}
 	if len(messages) == 0 {
-		return "No messages to learn from", nil
+		return "", ErrNoMessages
 	}
 
-	var myMessages []string
+	var mine []string
 	for _, m := range messages {
 		if m.IsFromMe {
-			myMessages = append(myMessages, m.Content)
+			mine = append(mine, m.Content)
 		}
 	}
 
-	if len(myMessages) == 0 {
-		return "No user messages to learn from", nil
+	if len(mine) == 0 {
+		return "", ErrNoUserMessages
 	}
 
 	prompt := fmt.Sprintf(`Analyze these messages written by a user and describe their communication style:
 %s
 
-Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(myMessages, "\n"))
+Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(mine, "\n"))
 
 	return a.llm.Generate(ctx, prompt)
 }
 
-func (a *Agent) ShouldRespond(contactID string, within time.Duration) (needsResponse bool, lastMessage messenger.Message, err error) {
+func (a *Agent) CheckResponse(contactID string, within time.Duration) (ResponseCheck, error) {
 	c, ok := a.contacts.Get(contactID)
 	if !ok || !c.Enabled {
-		return false, messenger.Message{}, nil
+		return ResponseCheck{}, nil
 	}
 
-	h, err := a.getHistory(contactID)
+	h, err := a.history(contactID)
 	if err != nil {
-		return false, messenger.Message{}, fmt.Errorf("failed to get history: %w", err)
+		return ResponseCheck{}, fmt.Errorf("get history: %w", err)
 	}
 
-	messages := h.GetRecent(1)
-	if len(messages) == 0 {
-		return false, messenger.Message{}, nil
+	recent := h.GetRecent(1)
+	if len(recent) == 0 {
+		return ResponseCheck{}, nil
 	}
 
-	lastMessage = messages[0]
-	if lastMessage.IsFromMe {
-		return false, lastMessage, nil
+	last := recent[0]
+	check := ResponseCheck{
+		LastAt:     last.Timestamp,
+		LastSender: "them",
+	}
+	if last.IsFromMe {
+		check.LastSender = "you"
+		return check, nil
 	}
 
-	if time.Since(lastMessage.Timestamp) > within {
-		return false, lastMessage, nil
+	if time.Since(last.Timestamp) > within {
+		return check, nil
 	}
 
-	return true, lastMessage, nil
+	check.Needed = true
+	return check, nil
 }
 
-func (a *Agent) InitiateConversation(ctx context.Context, contactID string) (string, error) {
+func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) {
 	c, ok := a.contacts.Get(contactID)
 	if !ok {
-		return "", fmt.Errorf("contact not found: %s", contactID)
+		return "", fmt.Errorf("%w: %s", ErrContactNotFound, contactID)
 	}
 
-	h, err := a.getHistory(contactID)
+	h, err := a.history(contactID)
 	if err != nil {
-		return "", fmt.Errorf("failed to get history: %w", err)
+		return "", fmt.Errorf("get history: %w", err)
 	}
 
 	recent := h.GetRecent(10)
 
-	var promptBuilder strings.Builder
-	promptBuilder.WriteString(buildSystemPrompt(c))
+	var b strings.Builder
+	b.WriteString(systemPrompt(c))
 
 	if c.Style != "" {
-		fmt.Fprintf(&promptBuilder, "\nYour communication style: %s\n", c.Style)
+		fmt.Fprintf(&b, "\nYour communication style: %s\n", c.Style)
 	}
 
 	if len(recent) > 0 {
-		promptBuilder.WriteString("\nRecent conversation history:\n")
+		b.WriteString("\nRecent conversation history:\n")
 		for _, m := range recent {
 			if m.IsFromMe {
-				fmt.Fprintf(&promptBuilder, "You: %s\n", m.Content)
+				fmt.Fprintf(&b, "You: %s\n", m.Content)
 			} else {
-				fmt.Fprintf(&promptBuilder, "%s: %s\n", c.Name, m.Content)
+				fmt.Fprintf(&b, "%s: %s\n", c.Name, m.Content)
 			}
 		}
 	}
 
-	promptBuilder.WriteString("\nInitiate a natural, casual message to start or continue this conversation. Keep it brief and appropriate. Reply with only the message:")
+	b.WriteString("\nInitiate a natural, casual message to start or continue this conversation. Keep it brief and appropriate. Reply with only the message:")
 
-	return a.llm.Generate(ctx, promptBuilder.String())
+	return a.llm.Generate(ctx, b.String())
 }
 
-func buildSystemPrompt(c contact.Contact) string {
-	var prompt strings.Builder
+func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error {
+	if !msg.IsFromMe {
+		return nil
+	}
+	h, err := a.history(msg.ContactID)
+	if err != nil {
+		return err
+	}
+	return h.Add(msg)
+}
 
-	prompt.WriteString("You are roleplaying as the user. ")
-	fmt.Fprintf(&prompt, "You are texting with %s. ", c.Name)
+func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-in:
+			if !ok {
+				return
+			}
+			if msg.IsFromMe {
+				_ = a.RecordMessage(ctx, msg)
+				continue
+			}
 
+			resp, err := a.Respond(ctx, msg)
+			if err != nil {
+				if errors.Is(err, ErrContactDisabled) || errors.Is(err, ErrContactNotFound) {
+					continue
+				}
+				continue
+			}
+
+			if resp != "" {
+				select {
+				case a.outbox <- Response{Content: resp, ContactID: msg.ContactID}:
+				default:
+				}
+			}
+		}
+	}
+}
+
+func systemPrompt(c contact.Contact) string {
+	var b strings.Builder
+	b.WriteString("You are roleplaying as the user. ")
+	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
 	if c.Description != "" {
-		fmt.Fprintf(&prompt, "Context: %s. ", c.Description)
+		fmt.Fprintf(&b, "Context: %s. ", c.Description)
 	}
-
-	prompt.WriteString("Respond naturally and briefly as if you were the user. ")
-	prompt.WriteString("Match the tone and style of previous messages. ")
-	prompt.WriteString("Keep responses conversational and appropriate for a messaging app.")
-
-	return prompt.String()
-}
-
-func (a *Agent) Start(ctx context.Context, m messenger.Messenger) error {
-	m.OnMessage(func(msg messenger.Message) {
-		if msg.IsFromMe {
-			h, err := a.getHistory(msg.ContactID)
-			if err == nil {
-				_ = h.Add(msg)
-			}
-			return
-		}
-
-		response, err := a.ProcessMessage(ctx, msg)
-		if err != nil {
-			return
-		}
-
-		if response != "" && a.messageHandler != nil {
-			msg.Content = response
-			msg.Timestamp = time.Now()
-			a.messageHandler(msg)
-		}
-	})
-
-	m.OnReaction(func(msg messenger.Message) {
-		if a.reactionHandler != nil {
-			a.reactionHandler(msg)
-		}
-	})
-
-	return nil
+	b.WriteString("Respond naturally and briefly as if you were the user. ")
+	b.WriteString("Match the tone and style of previous messages. ")
+	b.WriteString("Keep responses conversational and appropriate for a messaging app.")
+	return b.String()
 }
