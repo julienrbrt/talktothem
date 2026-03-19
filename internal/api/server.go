@@ -122,7 +122,6 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 		r.Get("/contacts/all", s.listAllContacts)
 		r.Post("/contacts", s.createContact)
 		r.Post("/contacts/import", s.importContactsFromMessenger)
-		r.Post("/contacts/upload-vcf", s.uploadVCF)
 		r.Get("/contacts/{id}", s.getContact)
 		r.Put("/contacts/{id}", s.updateContact)
 		r.Delete("/contacts/{id}", s.deleteContact)
@@ -815,57 +814,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	s.templates.ExecuteTemplate(w, "contacts", response)
 }
 
-func (s *Server) uploadVCF(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		http.Error(w, "file too large", http.StatusBadRequest)
-		return
-	}
-
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "file is required", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	importedContacts, err := contact.ParseVCARD(file)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	for _, c := range importedContacts {
-		if c.Phone == "" {
-			continue
-		}
-
-		existing, _ := s.contacts.Get(c.Phone)
-		if existing.ID != "" {
-			continue
-		}
-
-		if c.ID == "" {
-			c.ID = c.Phone
-		}
-
-		if err := s.contacts.Add(c); err != nil {
-			continue
-		}
-	}
-
-	// Return updated contact list for HTMX
-	contacts := s.contacts.List()
-	var response []ContactResponse
-	for _, ct := range contacts {
-		response = append(response, contactToResponse(ct))
-	}
-	if response == nil {
-		response = []ContactResponse{}
-	}
-
-	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "contacts", response)
-}
 
 type IndexData struct {
 	Onboarded bool

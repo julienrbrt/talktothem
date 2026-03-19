@@ -5,7 +5,6 @@ go 1.26.1
 tool github.com/golangci/golangci-lint/cmd/golangci-lint
 
 require (
-	github.com/emersion/go-vcard v0.0.0-20241024213814-c9703dde27ff
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0

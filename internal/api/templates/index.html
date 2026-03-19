@@ -216,10 +216,6 @@ async function submitOnboarding(e) {
             class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
             Import from Signal
         </button>
-        <label class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer block text-center">
-            Upload vCard
-            <input type="file" accept=".vcf" class="hidden" name="file" onchange="uploadVCF(this)">
-        </label>
         <button
             onclick="openAddContactModal()"
             class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors">
@@ -495,33 +491,6 @@ async function importFromSignal() {
         console.error('Error:', e);
         alert('Failed to import contacts');
     }
-}
-
-async function uploadVCF(input) {
-    if (!input.files || !input.files[0]) return;
-
-    const formData = new FormData();
-    formData.append('file', input.files[0]);
-
-    try {
-        const response = await fetch('/api/contacts/upload-vcf', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (response.ok) {
-            const html = await response.text();
-            document.getElementById('contact-list').innerHTML = html;
-            showToast('Contacts imported!');
-        } else {
-            alert('Failed to upload vCard');
-        }
-    } catch (e) {
-        console.error('Error:', e);
-        alert('Failed to upload vCard');
-    }
-
-    input.value = '';
 }
 
 // Load contacts on page load

@@ -85,7 +85,7 @@ Environment variable: `TALKTOTHEM_DATA_PATH` - Path to store database (default: 
 
 1. **Connect** your Signal account via the web UI
 2. **Configure** your OpenAI API key in onboarding
-3. **Import** contacts from Signal or upload vCard files
+3. **Import** contacts from Signal
 4. **Let it learn** from your conversation history (sync button)
 5. **Enable** the agent for specific contacts
 
