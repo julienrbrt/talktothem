@@ -15,6 +15,15 @@ type Config struct {
 	BaseURL string `gorm:"default:''"`
 }
 
+type UserProfile struct {
+	ID             uint   `gorm:"primaryKey"`
+	Name           string `gorm:"default:''"`
+	About          string `gorm:"type:text"`
+	FamilyContext  string `gorm:"type:text"`
+	WorkContext    string `gorm:"type:text"`
+	WritingStyle   string `gorm:"type:text"`
+}
+
 type MessengerConfig struct {
 	ID       uint   `gorm:"primaryKey"`
 	Type     string // "signal", "whatsapp", "telegram", etc.
@@ -27,6 +36,7 @@ type Contact struct {
 	ID          string `gorm:"primaryKey"`
 	Name        string
 	Phone       string
+	Messenger   string `gorm:"default:'signal'"` // "signal", "whatsapp", "telegram", etc.
 	Enabled     bool   `gorm:"default:false"`
 	Description string `gorm:"type:text"`
 	Style       string `gorm:"type:text"`
@@ -58,7 +68,7 @@ func Init(dataPath string) error {
 		return err
 	}
 
-	if err := DB.AutoMigrate(&Config{}, &MessengerConfig{}, &Contact{}, &Message{}); err != nil {
+	if err := DB.AutoMigrate(&Config{}, &MessengerConfig{}, &Contact{}, &Message{}, &UserProfile{}); err != nil {
 		return err
 	}
 
@@ -102,4 +112,20 @@ func GetMessengerConfig(messengerType string) *MessengerConfig {
 
 func SaveMessengerConfig(config *MessengerConfig) error {
 	return DB.Save(config).Error
+}
+
+func GetUserProfile() *UserProfile {
+	var profile UserProfile
+	result := DB.First(&profile)
+	if result.Error == gorm.ErrRecordNotFound {
+		return &UserProfile{}
+	}
+	return &profile
+}
+
+func UpdateUserProfile(profile *UserProfile) error {
+	if profile.ID == 0 {
+		return DB.Create(profile).Error
+	}
+	return DB.Save(profile).Error
 }

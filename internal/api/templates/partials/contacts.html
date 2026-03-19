@@ -4,19 +4,22 @@
     class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors contact-item"
     onclick="location.href='/conversations/{{.ID}}'; selectContact(this)">
     <div class="flex items-center justify-between">
-        <div>
+        <div class="flex items-center gap-2">
             <h3 class="font-medium text-gray-800">{{.Name}}</h3>
-            <p class="text-sm text-gray-500">{{.Phone}}</p>
+            <span class="messenger-badge messenger-{{.Messenger}}" title="{{.Messenger}}">
+                {{if eq .Messenger "signal"}}S{{else if eq .Messenger "whatsapp"}}W{{else if eq .Messenger "telegram"}}T{{else}}?{{end}}
+            </span>
         </div>
-        {{if .Enabled}}
-        <span class="w-2 h-2 rounded-full bg-green-400" title="Agent active"></span>
-        {{end}}
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Agent active"></span>
     </div>
     {{if .Description}}
     <p class="text-xs text-gray-400 mt-1 truncate">{{.Description}}</p>
     {{end}}
 </div>
 {{else}}
-<div class="p-4 text-gray-500 text-center">No contacts yet</div>
+<div class="p-4 text-gray-500 text-center text-sm">
+    No active agents<br>
+    <span class="text-xs">Click "Activate Agent" to start</span>
+</div>
 {{end}}
 {{end}}

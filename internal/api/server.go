@@ -119,6 +119,7 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 
 		// Contacts
 		r.Get("/contacts", s.listContacts)
+		r.Get("/contacts/all", s.listAllContacts)
 		r.Post("/contacts", s.createContact)
 		r.Post("/contacts/import", s.importContactsFromMessenger)
 		r.Post("/contacts/upload-vcf", s.uploadVCF)
@@ -133,6 +134,11 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 		r.Post("/contacts/{id}/learn-style", s.learnStyle)
 		r.Post("/contacts/{id}/initiate", s.initiateConversation)
 		r.Get("/contacts/{id}/response-check", s.checkResponse)
+
+		// User Profile
+		r.Get("/profile", s.getUserProfile)
+		r.Put("/profile", s.updateUserProfile)
+		r.Post("/profile/learn-style", s.learnUserStyle)
 	})
 
 	r.Get("/ws", s.handleWebSocket)
@@ -240,6 +246,7 @@ type ContactResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Phone       string `json:"phone"`
+	Messenger   string `json:"messenger"`
 	Enabled     bool   `json:"enabled"`
 	Description string `json:"description"`
 	Style       string `json:"style"`
@@ -250,6 +257,7 @@ func contactToResponse(c contact.Contact) ContactResponse {
 		ID:          c.ID,
 		Name:        c.Name,
 		Phone:       c.Phone,
+		Messenger:   c.Messenger,
 		Enabled:     c.Enabled,
 		Description: c.Description,
 		Style:       c.Style,
@@ -281,7 +289,7 @@ func messageToResponse(m messenger.Message) MessageResponse {
 }
 
 func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
-	contacts := s.contacts.List()
+	contacts := s.contacts.ListEnabled()
 
 	var response []ContactResponse
 	for _, c := range contacts {
@@ -294,6 +302,22 @@ func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	s.templates.ExecuteTemplate(w, "contacts", response)
+}
+
+func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
+	contacts := s.contacts.List()
+
+	var response []ContactResponse
+	for _, c := range contacts {
+		response = append(response, contactToResponse(c))
+	}
+
+	if response == nil {
+		response = []ContactResponse{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 type CreateContactRequest struct {
@@ -408,9 +432,20 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c, _ := s.contacts.Get(id)
+
+	// Check for unanswered messages
+	check, _ := s.agent.CheckResponse(id, 48*time.Hour)
+
+	response := map[string]interface{}{
+		"contact":         contactToResponse(c),
+		"hasUnanswered":   check.Needed,
+		"lastSender":      check.LastSender,
+		"lastMessageTime": check.LastAt,
+	}
+
 	s.broadcastEvent("contact_enabled", contactToResponse(c))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contactToResponse(c))
+	json.NewEncoder(w).Encode(response)
 }
 
 func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
@@ -875,7 +910,7 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	messages := h.GetRecent(0)
+	messages := h.GetRecent(20)
 	var msgResponses []MessageResponse
 	for _, m := range messages {
 		msgResponses = append(msgResponses, messageToResponse(m))
@@ -897,4 +932,82 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 	if err := s.templates.ExecuteTemplate(w, "conversation-page", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+type UserProfileResponse struct {
+	Name          string `json:"name"`
+	About         string `json:"about"`
+	FamilyContext string `json:"familyContext"`
+	WorkContext   string `json:"workContext"`
+	WritingStyle  string `json:"writingStyle"`
+}
+
+func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
+	profile := db.GetUserProfile()
+
+	response := UserProfileResponse{
+		Name:          profile.Name,
+		About:         profile.About,
+		FamilyContext: profile.FamilyContext,
+		WorkContext:   profile.WorkContext,
+		WritingStyle:  profile.WritingStyle,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type UpdateUserProfileRequest struct {
+	Name          string `json:"name"`
+	About         string `json:"about"`
+	FamilyContext string `json:"familyContext"`
+	WorkContext   string `json:"workContext"`
+	WritingStyle  string `json:"writingStyle"`
+}
+
+func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
+	var req UpdateUserProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	profile := db.GetUserProfile()
+	profile.Name = req.Name
+	profile.About = req.About
+	profile.FamilyContext = req.FamilyContext
+	profile.WorkContext = req.WorkContext
+	profile.WritingStyle = req.WritingStyle
+
+	if err := db.UpdateUserProfile(profile); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(UserProfileResponse{
+		Name:          profile.Name,
+		About:         profile.About,
+		FamilyContext: profile.FamilyContext,
+		WorkContext:   profile.WorkContext,
+		WritingStyle:  profile.WritingStyle,
+	})
+}
+
+func (s *Server) learnUserStyle(w http.ResponseWriter, r *http.Request) {
+	style, err := s.agent.LearnUserStyle(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	profile := db.GetUserProfile()
+	profile.WritingStyle = style
+	if err := db.UpdateUserProfile(profile); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"style": style})
 }

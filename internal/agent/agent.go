@@ -10,6 +10,7 @@ import (
 
 	"github.com/julienrbrt/talktothem/internal/contact"
 	"github.com/julienrbrt/talktothem/internal/conversation"
+	"github.com/julienrbrt/talktothem/internal/db"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
@@ -130,8 +131,29 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
-	b.WriteString("\n\nConversation history:\n")
 
+	profile := db.GetUserProfile()
+	if profile.WritingStyle != "" {
+		fmt.Fprintf(&b, "\nYour overall writing style: %s\n", profile.WritingStyle)
+	}
+	if c.Style != "" {
+		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
+	}
+
+	var userExamples []string
+	for _, m := range recent {
+		if m.IsFromMe && len(userExamples) < 5 {
+			userExamples = append(userExamples, m.Content)
+		}
+	}
+	if len(userExamples) > 0 {
+		b.WriteString("\nExamples of how you write:\n")
+		for _, ex := range userExamples {
+			fmt.Fprintf(&b, "- %s\n", ex)
+		}
+	}
+
+	b.WriteString("\nConversation history:\n")
 	for _, m := range recent {
 		if m.IsFromMe {
 			fmt.Fprintf(&b, "You: %s\n", m.Content)
@@ -149,7 +171,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	}
 
 	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
-	b.WriteString("\nRespond naturally as if you were the user:")
+	b.WriteString("\nReply as the user. Match their exact writing style - same level of formality, punctuation habits, emoji use, message length. Sound natural, not like AI:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -183,6 +205,42 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 %s
 
 Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(mine, "\n"))
+
+	return a.llm.Generate(ctx, prompt)
+}
+
+func (a *Agent) LearnUserStyle(ctx context.Context) (string, error) {
+	contactIDs, err := conversation.GetAllContactIDs()
+	if err != nil {
+		return "", err
+	}
+
+	var allMessages []string
+	for _, contactID := range contactIDs {
+		h, err := a.history(contactID)
+		if err != nil {
+			continue
+		}
+		messages := h.GetRecent(0)
+		for _, m := range messages {
+			if m.IsFromMe {
+				allMessages = append(allMessages, m.Content)
+			}
+		}
+	}
+
+	if len(allMessages) == 0 {
+		return "", ErrNoUserMessages
+	}
+
+	if len(allMessages) > 200 {
+		allMessages = allMessages[:200]
+	}
+
+	prompt := fmt.Sprintf(`Analyze these messages written by a user across all their conversations and describe their overall communication style:
+%s
+
+Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, slang/abbreviations, and any unique patterns. Be specific and concrete.`, strings.Join(allMessages, "\n"))
 
 	return a.llm.Generate(ctx, prompt)
 }
@@ -237,12 +295,29 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
 
+	profile := db.GetUserProfile()
+	if profile.WritingStyle != "" {
+		fmt.Fprintf(&b, "\nYour overall writing style: %s\n", profile.WritingStyle)
+	}
 	if c.Style != "" {
-		fmt.Fprintf(&b, "\nYour communication style: %s\n", c.Style)
+		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
+	}
+
+	var userExamples []string
+	for _, m := range recent {
+		if m.IsFromMe && len(userExamples) < 5 {
+			userExamples = append(userExamples, m.Content)
+		}
+	}
+	if len(userExamples) > 0 {
+		b.WriteString("\nExamples of how you write:\n")
+		for _, ex := range userExamples {
+			fmt.Fprintf(&b, "- %s\n", ex)
+		}
 	}
 
 	if len(recent) > 0 {
-		b.WriteString("\nRecent conversation history:\n")
+		b.WriteString("\nRecent conversation:\n")
 		for _, m := range recent {
 			if m.IsFromMe {
 				fmt.Fprintf(&b, "You: %s\n", m.Content)
@@ -252,7 +327,7 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 		}
 	}
 
-	b.WriteString("\nInitiate a natural, casual message to start or continue this conversation. Keep it brief and appropriate. Reply with only the message:")
+	b.WriteString("\nSend a natural message to start or continue this conversation. Match their writing style exactly. Reply with only the message:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -311,13 +386,31 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 
 func systemPrompt(c contact.Contact) string {
 	var b strings.Builder
-	b.WriteString("You are roleplaying as the user. ")
-	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
-	if c.Description != "" {
-		fmt.Fprintf(&b, "Context: %s. ", c.Description)
+	b.WriteString("You are the user, not an AI assistant. ")
+
+	profile := db.GetUserProfile()
+	if profile.Name != "" {
+		fmt.Fprintf(&b, "Your name is %s. ", profile.Name)
 	}
-	b.WriteString("Respond naturally and briefly as if you were the user. ")
-	b.WriteString("Match the tone and style of previous messages. ")
-	b.WriteString("Keep responses conversational and appropriate for a messaging app.")
+
+	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
+
+	if c.Description != "" {
+		fmt.Fprintf(&b, "Context about them: %s. ", c.Description)
+	}
+
+	if profile.About != "" {
+		fmt.Fprintf(&b, "About you: %s. ", profile.About)
+	}
+	if profile.FamilyContext != "" {
+		fmt.Fprintf(&b, "Family context: %s. ", profile.FamilyContext)
+	}
+	if profile.WorkContext != "" {
+		fmt.Fprintf(&b, "Work context: %s. ", profile.WorkContext)
+	}
+
+	b.WriteString("Write exactly as this person would - same casualness, same quirks. ")
+	b.WriteString("Avoid AI telltales: no perfect grammar unless they use it, no overly helpful tone, no unnecessary elaboration. ")
+	b.WriteString("Keep it short and real.")
 	return b.String()
 }

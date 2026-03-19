@@ -6,6 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TalkToThem - AI Agent Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .messenger-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .messenger-signal { background: #3a76f0; color: white; }
+        .messenger-whatsapp { background: #25d366; color: white; }
+        .messenger-telegram { background: #0088cc; color: white; }
+        .messenger-unknown { background: #6b7280; color: white; }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     {{template "content" .}}
