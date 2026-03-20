@@ -17,15 +17,16 @@ var downloads = []struct {
 }{
 	{
 		"https://unpkg.com/htmx.org@2.0.7/dist/htmx.min.js",
-		"./static/js/htmx.min.js",
+		"static/js/htmx.min.js",
 	},
 	{
 		"https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-linux-x64",
-		"./static/bin/tailwindcss",
+		"static/bin/tailwindcss",
 	},
 }
 
 func main() {
+	_ = os.Chdir("./internal/api")
 	for _, dl := range downloads {
 		fmt.Printf("Downloading %s\n", dl.url)
 		if err := download(dl.url, dl.dest); err != nil {
@@ -81,7 +82,7 @@ func download(url, dest string) error {
 
 func buildTailwind() error {
 	// Prefer local binary
-	localBinary := "./static/bin/tailwindcss"
+	localBinary := "static/bin/tailwindcss"
 	if _, err := os.Stat(localBinary); err == nil {
 		cmd := exec.Command(localBinary, "-i", "static/css/input.css", "-o", "static/css/style.css", "--minify")
 		cmd.Stdout = os.Stdout
@@ -107,4 +108,3 @@ func buildTailwind() error {
 
 	return fmt.Errorf("tailwindcss CLI not found. Run `go generate` to download it")
 }
-
