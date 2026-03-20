@@ -141,6 +141,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 		r.Post("/contacts/{id}/learn-style", s.learnStyle)
 		r.Post("/contacts/{id}/initiate", s.initiateConversation)
 		r.Get("/contacts/{id}/response-check", s.checkResponse)
+		r.Get("/contacts/{id}/summary", s.getSummary)
 
 		// User Profile
 		r.Get("/profile", s.getUserProfile)
@@ -200,6 +201,7 @@ func (s *Server) Run() error {
 	go s.hub.Run()
 	if s.agent != nil {
 		go s.listenForAgentResponses()
+		go s.listenForAgentQueued()
 	}
 	return s.server.ListenAndServe()
 }
@@ -244,6 +246,47 @@ func (s *Server) listenForAgentResponses() {
 		data, _ := json.Marshal(event)
 		s.hub.broadcast <- data
 	}
+}
+
+func (s *Server) listenForAgentQueued() {
+	for q := range s.agent.Queued() {
+		// Broadcast the queued response to the UI
+		event := MessageEvent{
+			Type: "queued_response",
+			Payload: map[string]any{
+				"contactId": q.ContactID,
+				"content":   q.Content,
+				"sendAt":    q.SendAt,
+			},
+		}
+		data, _ := json.Marshal(event)
+		s.hub.broadcast <- data
+	}
+}
+
+func (s *Server) getSummary(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	beforeStr := r.URL.Query().Get("before")
+
+	before := time.Now()
+	if beforeStr != "" {
+		if t, err := time.Parse(time.RFC3339, beforeStr); err == nil {
+			before = t
+		} else if ms, err := time.Parse("2006-01-02 15:04:05", beforeStr); err == nil {
+			before = ms
+		} else if unix, err := time.Parse("2006-01-02T15:04:05Z07:00", beforeStr); err == nil {
+			before = unix
+		}
+	}
+
+	summary, err := s.agent.Summarize(r.Context(), id, before)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -526,6 +569,11 @@ func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
 	if err := s.contacts.SetEnabled(id, false); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Stop any pending response in the agent
+	if s.agent != nil {
+		s.agent.Stop(id)
 	}
 
 	c, _ := s.contacts.Get(id)
@@ -1030,24 +1078,73 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	s.templates.ExecuteTemplate(w, "contacts", response)
 }
 
+type DashboardData struct {
+	TotalActiveAgents int
+	TotalMessages     int
+	RecentActivity    []ActivitySummary
+}
+
+type ActivitySummary struct {
+	ContactID string
+	Name      string
+	Summary   string
+	LastAt    time.Time
+}
+
 type PageData struct {
-	Onboarded    bool
-	HasMessenger bool
-	SidebarData  SidebarData
-	Page         string
-	Contact      contact.Contact
-	Messages     []MessageResponse
+	Onboarded     bool
+	HasMessenger  bool
+	SidebarData   SidebarData
+	Page          string
+	Contact       contact.Contact
+	Messages      []MessageResponse
+	DashboardData DashboardData
 }
 
 func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
 	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
+	contacts := s.contacts.List()
+	activeCount := 0
+	for _, c := range contacts {
+		if c.Enabled {
+			activeCount++
+		}
+	}
+
+	var totalMessages int64
+	db.DB.Model(&db.Message{}).Count(&totalMessages)
+
+	var activity []ActivitySummary
+	activeConvos := s.contacts.ListActiveConversations()
+	for i, c := range activeConvos {
+		if i >= 5 {
+			break
+		}
+		lastMsg, _ := conversation.GetLastMessage(c.ID)
+		lastAt := time.Now()
+		if lastMsg != nil {
+			lastAt = lastMsg.Timestamp
+		}
+
+		activity = append(activity, ActivitySummary{
+			ContactID: c.ID,
+			Name:      c.Name,
+			LastAt:    lastAt,
+		})
+	}
+
 	data := PageData{
 		Page:         "index",
 		Onboarded:    hasAPIKey && hasMessengerConfig,
 		HasMessenger: hasMessenger,
 		SidebarData:  s.getSidebarData(),
+		DashboardData: DashboardData{
+			TotalActiveAgents: activeCount,
+			TotalMessages:     int(totalMessages),
+			RecentActivity:    activity,
+		},
 	}
 
 	w.Header().Set("Content-Type", "text/html")

@@ -5,9 +5,15 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h2 class="text-lg font-semibold text-gray-800">{{.Contact.Name}}</h2>
-                    <span class="messenger-badge messenger-{{.Contact.Messenger}}" title="{{.Contact.Messenger}}">
-                        {{if eq .Contact.Messenger "signal"}}S{{else if eq .Contact.Messenger "whatsapp"}}W{{else if eq .Contact.Messenger "telegram"}}T{{else}}?{{end}}
-                    </span>
+                    {{if eq .Contact.Messenger "signal"}}
+                    <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Signal</span>
+                    {{else if eq .Contact.Messenger "whatsapp"}}
+                    <span class="bg-green-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">WhatsApp</span>
+                    {{else if eq .Contact.Messenger "telegram"}}
+                    <span class="bg-blue-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Telegram</span>
+                    {{else}}
+                    <span class="bg-gray-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">{{.Contact.Messenger}}</span>
+                    {{end}}
                 </div>
                 <p class="text-sm text-gray-500">{{.Contact.Phone}}</p>
             </div>
@@ -22,18 +28,35 @@
                     id="agent-toggle-{{.Contact.ID}}"
                     {{if .Contact.Enabled}}
                     onclick="toggleAgent(this, '{{.Contact.ID}}', 'disable')"
-                    class="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium transition-colors hover:bg-red-200"
+                    class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium shadow-sm hover:bg-red-700 flex items-center gap-2"
                     {{else}}
                     onclick="toggleAgent(this, '{{.Contact.ID}}', 'enable')"
-                    class="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium transition-colors hover:bg-green-200"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow-sm hover:bg-green-700 flex items-center gap-2"
                     {{end}}>
-                    {{if .Contact.Enabled}}Disable Agent{{else}}Enable Agent{{end}}
+                    {{if .Contact.Enabled}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+                    </svg>
+                    Stop Agent
+                    {{else}}
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                    </svg>
+                    Start Agent
+                    {{end}}
                 </button>
                 <button
                     onclick="syncConversation('{{.Contact.ID}}')"
                     class="p-2 hover:bg-gray-100 rounded-lg" title="Sync history">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button>
+                <button
+                    onclick="getSummary('{{.Contact.ID}}')"
+                    class="p-2 hover:bg-gray-100 rounded-lg" title="Get conversation summary">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                     </svg>
                 </button>
                 <button
@@ -77,12 +100,31 @@
     </header>
 
     <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <div id="queued-response" class="hidden flex justify-end mb-4 animate-in slide-in-from-right-4 fade-in duration-300">
+            <div class="bg-gray-100 border border-gray-200 text-gray-500 rounded-lg px-4 py-2 shadow-sm italic text-xs flex items-center gap-2">
+                <div class="typing-indicator flex gap-1">
+                    <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0s;"></span>
+                    <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s;"></span>
+                    <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s;"></span>
+                </div>
+                <span>Queued response: "<span id="queued-content" class="line-clamp-1 max-w-[150px]"></span>"</span>
+                <span id="queued-timer" class="ml-2 font-mono font-bold text-[10px] bg-gray-200 px-1 rounded"></span>
+            </div>
+        </div>
         {{if .Messages}}
         {{range .Messages}}
-        <div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}}">
+        <div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}} group relative">
             <div class="max-w-[70%] {{if .IsFromMe}}bg-blue-500 text-white{{else}}bg-white text-gray-800{{end}} rounded-lg px-4 py-2 shadow-sm">
-                <p class="text-sm">{{.Content}}</p>
-                <p class="text-xs {{if .IsFromMe}}text-blue-100{{else}}text-gray-400{{end}} mt-1">{{.Timestamp.Format "15:04"}}</p>
+                <p class="text-sm text-balance">{{.Content}}</p>
+                <div class="flex items-center justify-between mt-1">
+                    <p class="text-xs {{if .IsFromMe}}text-blue-100{{else}}text-gray-400{{end}}">{{.Timestamp.Format "15:04"}}</p>
+                    <button 
+                        onclick="getSummaryAt('{{.ContactID}}', '{{.Timestamp.Format "2006-01-02T15:04:05Z07:00"}}')"
+                        class="hidden group-hover:block ml-2 text-[10px] uppercase font-bold tracking-tight px-1 rounded border border-current opacity-70 hover:opacity-100"
+                        title="Summary up to this message">
+                        Summary
+                    </button>
+                </div>
             </div>
         </div>
         {{end}}
@@ -251,19 +293,27 @@
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            if (data.type === 'agent_response') {
+        if (data.type === 'agent_response') {
                 const payload = data.payload;
                 if (payload.contactId === currentContactId) {
+                    hideQueued();
                     appendMessage({
+                        contactId: payload.contactId,
                         content: payload.content,
                         isFromMe: true,
                         timestamp: new Date()
                     });
                 }
+            } else if (data.type === 'queued_response') {
+                const payload = data.payload;
+                if (payload.contactId === currentContactId) {
+                    showQueued(payload.content, payload.sendAt);
+                }
             } else if (data.type === 'new_message') {
                 const payload = data.payload;
                 if (payload.contactId === currentContactId) {
                     appendMessage({
+                        contactId: payload.contactId,
                         content: payload.content,
                         isFromMe: payload.isFromMe,
                         timestamp: payload.timestamp
@@ -302,10 +352,18 @@
         }
 
         const messageHtml = `
-            <div class="flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}">
+            <div class="flex ${msg.isFromMe ? 'justify-end' : 'justify-start'} group relative">
                 <div class="max-w-[70%] ${msg.isFromMe ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'} rounded-lg px-4 py-2 shadow-sm">
-                    <p class="text-sm">${escapeHtml(msg.content)}</p>
-                    <p class="text-xs ${msg.isFromMe ? 'text-blue-100' : 'text-gray-400'} mt-1">${time}</p>
+                    <p class="text-sm text-balance">${escapeHtml(msg.content)}</p>
+                    <div class="flex items-center justify-between mt-1">
+                        <p class="text-xs ${msg.isFromMe ? 'text-blue-100' : 'text-gray-400'}">${time}</p>
+                        <button 
+                            onclick="getSummaryAt('${msg.contactId}', '${new Date(msg.timestamp).toISOString()}')"
+                            class="hidden group-hover:block ml-2 text-[10px] uppercase font-bold tracking-tight px-1 rounded border border-current opacity-70 hover:opacity-100"
+                            title="Summary up to this message">
+                            Summary
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -319,6 +377,68 @@
         div.textContent = text;
         return div.innerHTML;
     }
+
+    let queuedInterval = null;
+    function showQueued(content, sendAt) {
+        const el = document.getElementById('queued-response');
+        const contentEl = document.getElementById('queued-content');
+        const timerEl = document.getElementById('queued-timer');
+        if (!el) return;
+
+        contentEl.textContent = content;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+
+        if (queuedInterval) clearInterval(queuedInterval);
+        
+        const updateTimer = () => {
+            const now = new Date();
+            const target = new Date(sendAt);
+            const remaining = Math.max(0, Math.ceil((target - now) / 1000));
+            timerEl.textContent = remaining + 's';
+            if (remaining <= 0) {
+                clearInterval(queuedInterval);
+            }
+        };
+        updateTimer();
+        queuedInterval = setInterval(updateTimer, 1000);
+    }
+
+    function hideQueued() {
+        const el = document.getElementById('queued-response');
+        if (el) {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+        if (queuedInterval) clearInterval(queuedInterval);
+    }
+
+    window.getSummary = async function(contactId) {
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/summary');
+            if (response.ok) {
+                const data = await response.json();
+                showConfirm('Conversation Summary (Total)', data.summary, () => {}, 'Got it');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            showToast('Failed to get summary', 'error');
+        }
+    };
+
+    window.getSummaryAt = async function(contactId, before) {
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/summary?before=' + encodeURIComponent(before));
+            if (response.ok) {
+                const data = await response.json();
+                const timeStr = new Date(before).toLocaleString();
+                showConfirm('Summary at ' + timeStr, data.summary, () => {}, 'Got it');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            showToast('Failed to get summary', 'error');
+        }
+    };
 
     function init() {
         connectWebSocket();

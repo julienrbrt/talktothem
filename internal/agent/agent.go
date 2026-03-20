@@ -23,7 +23,10 @@ var (
 	ErrNoResponseNeeded = errors.New("no response needed")
 )
 
-const maxUserStyleSnapshot = 100
+const (
+	maxUserStyleSnapshot = 100
+	summaryFallbackCount = 50
+)
 
 type LLM interface {
 	Generate(ctx context.Context, prompt string) (string, error)
@@ -36,6 +39,13 @@ type Vision interface {
 type Response struct {
 	Content   string
 	ContactID string
+	Delay     time.Duration
+}
+
+type QueuedResponse struct {
+	Content   string
+	ContactID string
+	SendAt    time.Time
 }
 
 type ResponseCheck struct {
@@ -51,8 +61,10 @@ type Agent struct {
 	histories map[string]*conversation.History
 	historyMu sync.RWMutex
 	dataPath  string
+	cancels   sync.Map // contactID -> context.CancelFunc
 
 	outbox chan Response
+	queued chan QueuedResponse
 }
 
 type Option func(*Agent)
@@ -68,6 +80,7 @@ func New(llm LLM, contacts *contact.Manager, dataPath string, opts ...Option) *A
 		dataPath:  dataPath,
 		histories: make(map[string]*conversation.History),
 		outbox:    make(chan Response, 100),
+		queued:    make(chan QueuedResponse, 100),
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -76,6 +89,7 @@ func New(llm LLM, contacts *contact.Manager, dataPath string, opts ...Option) *A
 }
 
 func (a *Agent) Outbox() <-chan Response { return a.outbox }
+func (a *Agent) Queued() <-chan QueuedResponse { return a.queued }
 
 func (a *Agent) history(contactID string) (*conversation.History, error) {
 	a.historyMu.RLock()
@@ -285,6 +299,36 @@ func (a *Agent) HasLLM() bool {
 	return a.llm != nil
 }
 
+func (a *Agent) Summarize(ctx context.Context, contactID string, before time.Time) (string, error) {
+	h, err := a.history(contactID)
+	if err != nil {
+		return "", err
+	}
+
+	startOfDay := time.Date(before.Year(), before.Month(), before.Day(), 0, 0, 0, 0, before.Location())
+	messages := h.GetRange(0, startOfDay, before)
+	if len(messages) == 0 {
+		messages = h.GetBefore(summaryFallbackCount, before)
+	}
+
+	if len(messages) == 0 {
+		return "No conversation history found.", nil
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "Summarize the conversation history as of %s:\n\n", before.Format("2006-01-02 15:04"))
+	for _, m := range messages {
+		if m.IsFromMe {
+			fmt.Fprintf(&b, "You: %s\n", m.Content)
+		} else {
+			fmt.Fprintf(&b, "Contact: %s\n", m.Content)
+		}
+	}
+	b.WriteString("\nProvide a concise 1-2 sentence summary of the conversation state at that time.")
+
+	return a.llm.Generate(ctx, b.String())
+}
+
 func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 	slog.Info("Agent Run loop started")
 	for {
@@ -309,26 +353,83 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				continue
 			}
 
-			resp, err := a.Respond(ctx, msg)
-			if err != nil {
-				slog.Error("Agent Respond error", "error", err)
-				if errors.Is(err, ErrContactDisabled) || errors.Is(err, ErrContactNotFound) {
-					continue
-				}
-				continue
-			}
+			// Cancel any previous pending response for this contact
+			a.Stop(msg.ContactID)
 
-			if resp != "" {
-				slog.Info("Agent Generated response", "response", resp)
-				select {
-				case a.outbox <- Response{Content: resp, ContactID: msg.ContactID}:
-					slog.Info("Agent Response sent to outbox")
-				default:
-					slog.Warn("Agent Outbox full, dropping response")
+			// Start a new response goroutine
+			msgCtx, cancel := context.WithCancel(ctx)
+			a.cancels.Store(msg.ContactID, cancel)
+
+			go func(cID string, m messenger.Message) {
+				defer a.cancels.Delete(cID)
+				defer cancel()
+
+				resp, err := a.Respond(msgCtx, m)
+				if err != nil {
+					if !errors.Is(err, context.Canceled) {
+						slog.Error("Agent Respond error", "error", err)
+					}
+					return
 				}
-			}
+
+				if resp != "" {
+					slog.Info("Agent Generated response", "response", resp)
+					
+					// Calculate delay
+					delay := a.calculateDelay(m, resp)
+					sendAt := time.Now().Add(delay)
+					
+					select {
+					case a.queued <- QueuedResponse{Content: resp, ContactID: cID, SendAt: sendAt}:
+					default:
+					}
+
+					// Wait for delay or cancellation
+					timer := time.NewTimer(delay)
+					defer timer.Stop()
+
+					select {
+					case <-msgCtx.Done():
+						slog.Info("Agent Response canceled", "contactID", cID)
+						return
+					case <-timer.C:
+						select {
+						case a.outbox <- Response{Content: resp, ContactID: cID}:
+							slog.Info("Agent Response sent to outbox")
+						case <-msgCtx.Done():
+							return
+						default:
+							slog.Warn("Agent Outbox full, dropping response")
+						}
+					}
+				}
+			}(msg.ContactID, msg)
 		}
 	}
+}
+
+func (a *Agent) Stop(contactID string) {
+	if cancel, ok := a.cancels.Load(contactID); ok {
+		cancel.(context.CancelFunc)()
+		a.cancels.Delete(contactID)
+	}
+}
+
+func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.Duration {
+	// Base delay: 2-5 seconds for "thinking"
+	delay := time.Duration(2+ (time.Now().UnixNano()%3)) * time.Second
+	
+	// Add typing time: ~200 chars per minute = ~3 chars per second
+	typingTime := time.Duration(min(len(response)/3, 30)) * time.Second
+	delay += typingTime
+
+	// If the last message was very recent, add more delay to seem natural
+	timeSinceLast := time.Since(lastMsg.Timestamp)
+	if timeSinceLast < 10*time.Second {
+		delay += 10 * time.Second
+	}
+
+	return delay
 }
 
 func systemPrompt(c contact.Contact, profile *db.UserProfile) string {

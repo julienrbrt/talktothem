@@ -37,8 +37,27 @@ func (h *History) Add(msg messenger.Message) error {
 }
 
 func (h *History) GetRecent(limit int) []messenger.Message {
+	return h.getMessages(limit, nil, nil)
+}
+
+func (h *History) GetBefore(limit int, before time.Time) []messenger.Message {
+	return h.getMessages(limit, &before, nil)
+}
+
+func (h *History) GetRange(limit int, since, before time.Time) []messenger.Message {
+	return h.getMessages(limit, &before, &since)
+}
+
+func (h *History) getMessages(limit int, before *time.Time, since *time.Time) []messenger.Message {
 	var dbMessages []db.Message
-	query := db.DB.Where("contact_id = ?", h.contactID).Order("timestamp DESC")
+	query := db.DB.Where("contact_id = ?", h.contactID)
+	if before != nil {
+		query = query.Where("timestamp <= ?", before.UnixMilli())
+	}
+	if since != nil {
+		query = query.Where("timestamp >= ?", since.UnixMilli())
+	}
+	query = query.Order("timestamp DESC")
 
 	if limit > 0 {
 		query = query.Limit(limit)

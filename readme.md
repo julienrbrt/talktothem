@@ -22,7 +22,8 @@ TalkToThem learns your conversation style by analyzing your message history, the
 
 ## Getting Started
 
-### Option 1: Docker (Recommended)
+<details>
+<summary><b>Option 1: Docker (Recommended)</b></summary>
 
 ```bash
 # Clone the repository
@@ -47,10 +48,13 @@ docker compose logs -f talktothem
 ```
 
 Data is stored in `./data/`:
+
 - `data/signal/` - Signal registration keys
 - `data/talktothem.db` - SQLite database (config, contacts, messages)
+</details>
 
-### Option 2: Install Binary
+<details>
+<summary><b>Option 2: Install Binary</b></summary>
 
 ```bash
 go install github.com/julienrbrt/talktothem@latest
@@ -68,6 +72,8 @@ talktothem serve --addr :3000  # custom port
 # Data is stored in ~/.config/talktothem/ by default
 # Override with TALKTOTHEM_DATA_PATH environment variable
 ```
+
+</details>
 
 ### Configuration
 

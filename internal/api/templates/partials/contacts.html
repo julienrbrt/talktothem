@@ -10,8 +10,16 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <h3 class="font-medium text-gray-800">{{.Name}}</h3>
-            <span class="messenger-badge messenger-{{.Messenger}}" title="{{.Messenger}}">
-                {{if eq .Messenger "signal"}}S{{else if eq .Messenger "whatsapp"}}W{{else if eq .Messenger "telegram"}}T{{else}}?{{end}}
+            <span class="messenger-badge" title="{{.Messenger}}">
+                {{if eq .Messenger "signal"}}
+                <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Signal</span>
+                {{else if eq .Messenger "whatsapp"}}
+                <span class="bg-green-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">WhatsApp</span>
+                {{else if eq .Messenger "telegram"}}
+                <span class="bg-blue-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Telegram</span>
+                {{else}}
+                <span class="bg-gray-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">{{.Messenger}}</span>
+                {{end}}
             </span>
         </div>
         <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Agent active"></span>
@@ -37,8 +45,16 @@
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <h3 class="font-medium text-gray-800">{{.Name}}</h3>
-            <span class="messenger-badge messenger-{{.Messenger}}" title="{{.Messenger}}">
-                {{if eq .Messenger "signal"}}S{{else if eq .Messenger "whatsapp"}}W{{else if eq .Messenger "telegram"}}T{{else}}?{{end}}
+            <span class="messenger-badge" title="{{.Messenger}}">
+                {{if eq .Messenger "signal"}}
+                <span class="bg-blue-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Signal</span>
+                {{else if eq .Messenger "whatsapp"}}
+                <span class="bg-green-600 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">WhatsApp</span>
+                {{else if eq .Messenger "telegram"}}
+                <span class="bg-blue-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">Telegram</span>
+                {{else}}
+                <span class="bg-gray-400 text-white px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">{{.Messenger}}</span>
+                {{end}}
             </span>
         </div>
     </div>
