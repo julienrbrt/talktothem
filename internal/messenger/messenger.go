@@ -39,7 +39,6 @@ type Messenger interface {
 
 	StartLinking(ctx context.Context, deviceName string) ([]byte, error)
 	IsLinked(ctx context.Context) (bool, string, error)
-	SetNumber(number string)
 
 	GetContacts(ctx context.Context) ([]Contact, error)
 	GetConversation(ctx context.Context, contactID string, limit int) ([]Message, error)

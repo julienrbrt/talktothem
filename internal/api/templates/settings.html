@@ -232,13 +232,7 @@
                             <p class="text-sm text-gray-600 mt-2">Linked to: ${data.number}</p>
                         `;
                         
-                        // Update messenger config
-                        await fetch('/api/messenger/signal/update-number', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ number: data.number })
-                        });
-
+                        // Refresh status
                         setTimeout(() => {
                             container.classList.add('hidden');
                             window.loadSignalStatus();

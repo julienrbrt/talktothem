@@ -111,7 +111,6 @@ func (m *mockMessenger) Disconnect() error               { return nil }
 func (m *mockMessenger) IsConnected() bool               { return true }
 func (m *mockMessenger) StartLinking(ctx context.Context, deviceName string) ([]byte, error) { return nil, nil }
 func (m *mockMessenger) IsLinked(ctx context.Context) (bool, string, error) { return true, "mock", nil }
-func (m *mockMessenger) SetNumber(number string) {}
 func (m *mockMessenger) GetContacts(_ context.Context) ([]messenger.Contact, error) {
 	return nil, nil
 }

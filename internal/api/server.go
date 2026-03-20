@@ -117,7 +117,6 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[stri
 		r.Get("/messenger/{type}/link/start", s.startMessengerLinking)
 		r.Get("/messenger/{type}/link/status", s.getMessengerLinkStatus)
 		r.Post("/messenger/{type}/unlink", s.unlinkMessenger)
-		r.Post("/messenger/{type}/update-number", s.updateMessengerNumber)
 
 		// Configuration
 		r.Get("/config", s.getConfig)
@@ -714,8 +713,7 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		status := MessengerStatus{}
 		if cfg != nil {
 			status.Enabled = cfg.Enabled
-			status.Phone = cfg.Phone
-			if cfg.Enabled && cfg.Phone != "" {
+			if cfg.Enabled {
 				hasMessengerConfig = true
 			}
 		}
@@ -833,7 +831,7 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the number from the linked messenger device
-	linked, number, err := msgr.IsLinked(r.Context())
+	linked, _, err := msgr.IsLinked(r.Context())
 	if err != nil {
 		http.Error(w, "failed to check messenger link: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -864,16 +862,12 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	// Save messenger config with number from linked device
 	messengerCfg := &db.MessengerConfig{
 		Type:    msgr.Name(),
-		Phone:   number,
 		Enabled: true,
 	}
 	if err := db.SaveMessengerConfig(messengerCfg); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Make sure the messenger object updates its number
-	msgr.SetNumber(number)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -894,7 +888,7 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Get number from linked device
-	linked, number, err := msgr.IsLinked(r.Context())
+	linked, _, err := msgr.IsLinked(r.Context())
 	if err != nil {
 		http.Error(w, "failed to check messenger link: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -903,9 +897,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "messenger device not linked", http.StatusBadRequest)
 		return
 	}
-
-	// Ensure messenger has the correct number set
-	msgr.SetNumber(number)
 
 	messengerContacts, err := msgr.GetContacts(r.Context())
 	if err != nil {
@@ -973,7 +964,7 @@ func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 
 	for name, msgr := range s.messengers {
 		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled && messengerCfg.Phone != "" {
+		if messengerCfg != nil && messengerCfg.Enabled {
 			hasMessengerConfig = true
 			if msgr != nil {
 				hasMessenger = true
@@ -1024,7 +1015,7 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 
 	for name, msgr := range s.messengers {
 		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled && messengerCfg.Phone != "" {
+		if messengerCfg != nil && messengerCfg.Enabled {
 			hasMessengerConfig = true
 			if msgr != nil {
 				hasMessenger = true
@@ -1109,7 +1100,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 
 	for name, msgr := range s.messengers {
 		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled && messengerCfg.Phone != "" {
+		if messengerCfg != nil && messengerCfg.Enabled {
 			hasMessengerConfig = true
 			if msgr != nil {
 				hasMessenger = true
@@ -1137,7 +1128,7 @@ func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
 
 	for name, msgr := range s.messengers {
 		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled && messengerCfg.Phone != "" {
+		if messengerCfg != nil && messengerCfg.Enabled {
 			hasMessengerConfig = true
 			if msgr != nil {
 				hasMessenger = true
@@ -1216,41 +1207,10 @@ func (s *Server) unlinkMessenger(w http.ResponseWriter, r *http.Request) {
 	messengerCfg := db.GetMessengerConfig(mt)
 	if messengerCfg != nil {
 		messengerCfg.Enabled = false
-		messengerCfg.Phone = ""
 		if err := db.SaveMessengerConfig(messengerCfg); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-type UpdateMessengerNumberRequest struct {
-	Number string `json:"number"`
-}
-
-func (s *Server) updateMessengerNumber(w http.ResponseWriter, r *http.Request) {
-	mt := chi.URLParam(r, "type")
-	var req UpdateMessengerNumberRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if req.Number == "" {
-		http.Error(w, "number is required", http.StatusBadRequest)
-		return
-	}
-
-	messengerCfg := &db.MessengerConfig{
-		Type:    mt,
-		Phone:   req.Number,
-		Enabled: true,
-	}
-	if err := db.SaveMessengerConfig(messengerCfg); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)

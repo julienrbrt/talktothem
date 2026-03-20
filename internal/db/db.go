@@ -27,7 +27,6 @@ type UserProfile struct {
 type MessengerConfig struct {
 	ID       uint   `gorm:"primaryKey"`
 	Type     string // "signal", "whatsapp", "telegram", etc.
-	Phone    string
 	APIToken string
 	Enabled  bool `gorm:"default:false"`
 }

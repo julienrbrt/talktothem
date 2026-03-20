@@ -120,11 +120,10 @@ func runServe(cmd *cobra.Command, args []string) error {
 		if linked && linkedNumber != "" {
 			// Ensure DB is in sync with linked device
 			cfg := db.GetMessengerConfig(name)
-			if cfg == nil || cfg.Phone != linkedNumber {
-				slog.Info("Syncing messenger configuration", "messenger", name, "linkedNumber", linkedNumber)
+			if cfg == nil {
+				slog.Info("Syncing messenger configuration", "messenger", name)
 				cfg = &db.MessengerConfig{
 					Type:    name,
-					Phone:   linkedNumber,
 					Enabled: true,
 				}
 				if err := db.SaveMessengerConfig(cfg); err != nil {
@@ -134,8 +133,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		}
 
 		cfg := db.GetMessengerConfig(name)
-		if cfg != nil && cfg.Enabled && cfg.Phone != "" {
-			m.SetNumber(cfg.Phone)
+		if cfg != nil && cfg.Enabled {
 			slog.Info("Connecting to messenger...", "messenger", name)
 			if err := m.Connect(ctx); err != nil {
 				slog.Warn("failed to connect to the messenger", "messenger", name, "error", err)
