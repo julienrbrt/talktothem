@@ -8,30 +8,22 @@
 
         <section class="bento-card p-8 bg-white">
             <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="md:col-span-1">
-                        <div class="w-32 h-32 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 group hover:border-purple-200 hover:bg-purple-50 transition-all cursor-pointer">
-                            <svg class="w-10 h-10 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                            <span class="text-[9px] font-black uppercase tracking-widest">Avatar</span>
-                        </div>
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legal Identity</label>
+                        <input
+                            type="text"
+                            id="profile-name"
+                            class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold"
+                            placeholder="Display Name">
                     </div>
-                    <div class="md:col-span-2 space-y-6">
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legal Identity</label>
-                            <input
-                                type="text"
-                                id="profile-name"
-                                class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-bold"
-                                placeholder="Display Name">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Persona Summary</label>
-                            <textarea
-                                id="profile-about"
-                                rows="3"
-                                class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                                placeholder="Key personality traits, hobbies, and general bio..."></textarea>
-                        </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Persona Summary</label>
+                        <textarea
+                            id="profile-about"
+                            rows="3"
+                            class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-medium"
+                            placeholder="Key personality traits, hobbies, and general bio..."></textarea>
                     </div>
                 </div>
 
@@ -41,16 +33,16 @@
                         <textarea
                             id="profile-family"
                             rows="4"
-                            class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
-                            placeholder="Relationships, history, and family specific context..."></textarea>
+                            class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all"
+                            placeholder="Relationships, history, and family specific context...">></textarea>
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Professional Matrix (Work)</label>
                         <textarea
                             id="profile-work"
                             rows="4"
-                            class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
-                            placeholder="Career, workplace dynamics, and professional tone..."></textarea>
+                            class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all"
+                            placeholder="Career, workplace dynamics, and professional tone...">></textarea>
                     </div>
                 </div>
 
@@ -59,8 +51,8 @@
                     <textarea
                         id="profile-style"
                         rows="4"
-                        class="w-full bg-purple-50/30 border border-purple-100/50 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all italic font-medium"
-                        placeholder="Default writing habits: sentence length, emoji frequency, slang..."></textarea>
+                        class="w-full bg-purple-50/50 border border-purple-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 transition-all font-medium"
+                        placeholder="Default writing habits: sentence length, emoji frequency, slang...">></textarea>
                     <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter ml-1">This signature is used when contact-specific style is undefined.</p>
                 </div>
                 

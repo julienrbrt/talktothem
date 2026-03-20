@@ -85,6 +85,9 @@ type MessageEvent struct {
 //go:embed templates/*.html templates/partials/*.html
 var templatesFS embed.FS
 
+//go:embed static/*
+var staticFS embed.FS
+
 func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[string]messenger.Messenger, cfg *db.Config, assets fs.FS) *Server {
 	r := chi.NewRouter()
 
@@ -105,7 +108,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 		config:     cfg,
 		hub:        NewHub(),
 		templates:  tmpl,
-		assets:     assets,
+		assets:     staticFS,
 	}
 
 	r.Use(middleware.Logger)
@@ -176,7 +179,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 }
 
 func FileServer(r chi.Router, path string, root fs.FS) {
-	sub, err := fs.Sub(root, "dist")
+	sub, err := fs.Sub(root, ".")
 	if err != nil {
 		return
 	}
@@ -1154,6 +1157,7 @@ type ActivitySummary struct {
 	Name      string
 	Summary   string
 	LastAt    time.Time
+	Messenger string
 }
 
 type PageData struct {
@@ -1197,6 +1201,7 @@ func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 			ContactID: c.ID,
 			Name:      c.Name,
 			LastAt:    lastAt,
+			Messenger:  c.Messenger,
 		})
 	}
 
