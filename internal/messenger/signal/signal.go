@@ -17,6 +17,8 @@ import (
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
+var _ messenger.Messenger = &Client{}
+
 type Client struct {
 	number    string
 	baseURL   string
@@ -27,6 +29,10 @@ type Client struct {
 
 	messageHandler  func(messenger.Message)
 	reactionHandler func(messenger.Message)
+}
+
+func (c *Client) Name() string {
+	return "signal"
 }
 
 func New(number, baseURL string) *Client {

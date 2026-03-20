@@ -23,6 +23,8 @@ var (
 	ErrNoResponseNeeded = errors.New("no response needed")
 )
 
+const maxUserStyleSnapshot = 100
+
 type LLM interface {
 	Generate(ctx context.Context, prompt string) (string, error)
 }
@@ -129,22 +131,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
 
-	if c.Style != "" {
-		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
-	}
-
-	var userExamples []string
-	for _, m := range recent {
-		if m.IsFromMe && len(userExamples) < 5 {
-			userExamples = append(userExamples, m.Content)
-		}
-	}
-	if len(userExamples) > 0 {
-		b.WriteString("\nExamples of how you write:\n")
-		for _, ex := range userExamples {
-			fmt.Fprintf(&b, "- %s\n", ex)
-		}
-	}
+	appendStyleContext(&b, c, recent)
 
 	b.WriteString("\nConversation history:\n")
 	for _, m := range recent {
@@ -252,22 +239,7 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
 
-	if c.Style != "" {
-		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
-	}
-
-	var userExamples []string
-	for _, m := range recent {
-		if m.IsFromMe && len(userExamples) < 5 {
-			userExamples = append(userExamples, m.Content)
-		}
-	}
-	if len(userExamples) > 0 {
-		b.WriteString("\nExamples of how you write:\n")
-		for _, ex := range userExamples {
-			fmt.Fprintf(&b, "- %s\n", ex)
-		}
-	}
+	appendStyleContext(&b, c, recent)
 
 	if len(recent) > 0 {
 		b.WriteString("\nRecent conversation:\n")
@@ -362,4 +334,23 @@ func systemPrompt(c contact.Contact) string {
 	b.WriteString("Avoid AI telltales: no perfect grammar unless they use it, no overly helpful tone, no unnecessary elaboration. ")
 	b.WriteString("Keep it short and real.")
 	return b.String()
+}
+
+func appendStyleContext(b *strings.Builder, c contact.Contact, recent []messenger.Message) {
+	if c.Style != "" {
+		fmt.Fprintf(b, "\nYour style with this person: %s\n", c.Style)
+	}
+
+	var userExamples []string
+	for _, m := range recent {
+		if m.IsFromMe && len(userExamples) < maxUserStyleSnapshot {
+			userExamples = append(userExamples, m.Content)
+		}
+	}
+	if len(userExamples) > 0 {
+		b.WriteString("\nExamples of how you write:\n")
+		for _, ex := range userExamples {
+			fmt.Fprintf(b, "- %s\n", ex)
+		}
+	}
 }

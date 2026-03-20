@@ -114,8 +114,8 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 	if linked && linkedNumber != "" {
 		// Ensure DB is in sync with linked device
-		signalCfg := db.GetMessengerConfig("signal")
-		if signalCfg == nil || signalCfg.Phone != linkedNumber {
+		signalCfg := db.GetMessengerConfig(signalClient.Name())
+	if signalCfg == nil || signalCfg.Phone != linkedNumber {
 			slog.Info("Syncing Signal configuration", "linkedNumber", linkedNumber)
 			signalCfg = &db.MessengerConfig{
 				Type:    "signal",
@@ -128,7 +128,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(signalClient.Name())
 	if signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" {
 		msgr = signalcli.New(signalCfg.Phone, signalAPIURL)
 		slog.Info("Connecting to messenger...")

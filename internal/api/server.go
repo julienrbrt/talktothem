@@ -676,7 +676,7 @@ type MessengerStatus struct {
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	contacts := s.contacts.List()
 	var connected int
@@ -692,7 +692,7 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	messengers := make(map[string]MessengerStatus)
-	messengerTypes := []string{"signal", "whatsapp", "telegram"}
+	messengerTypes := []string{s.signalClient.Name()}
 	for _, mt := range messengerTypes {
 		cfg := db.GetMessengerConfig(mt)
 		if cfg != nil {
@@ -718,9 +718,9 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		if err == nil && linked {
 			response.ConnectionStatus = "connected"
 			// Update messenger status with actual connection state
-			if status, ok := messengers["signal"]; ok {
+			if status, ok := messengers[s.signalClient.Name()]; ok {
 				status.Connected = true
-				messengers["signal"] = status
+				messengers[s.signalClient.Name()] = status
 			}
 			// Update number if it changed
 			if number != "" {
@@ -827,7 +827,7 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 
 	// Save Signal messenger config with number from linked device
 	signalCfg := &db.MessengerConfig{
-		Type:    "signal",
+		Type:    s.signalClient.Name(),
 		Phone:   number,
 		Enabled: true,
 	}
@@ -921,7 +921,7 @@ type PageData struct {
 
 func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	hasSignal := hasSignalConfig && s.messenger != nil
 
@@ -963,7 +963,7 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	hasAPIKey := s.config.APIKey != ""
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	hasSignal := hasSignalConfig && s.messenger != nil
 
@@ -1039,7 +1039,7 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	hasSignal := hasSignalConfig && s.messenger != nil
 
@@ -1058,7 +1058,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	hasSignal := hasSignalConfig && s.messenger != nil
 
@@ -1129,7 +1129,7 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) unlinkSignal(w http.ResponseWriter, r *http.Request) {
-	signalCfg := db.GetMessengerConfig("signal")
+	signalCfg := db.GetMessengerConfig(s.signalClient.Name())
 	if signalCfg != nil {
 		signalCfg.Enabled = false
 		signalCfg.Phone = ""
@@ -1159,7 +1159,7 @@ func (s *Server) updateSignalNumber(w http.ResponseWriter, r *http.Request) {
 	}
 
 	signalCfg := &db.MessengerConfig{
-		Type:    "signal",
+		Type:    s.signalClient.Name(),
 		Phone:   req.Number,
 		Enabled: true,
 	}

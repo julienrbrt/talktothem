@@ -105,6 +105,7 @@ type mockMessenger struct {
 	messages []messenger.Message
 }
 
+func (m *mockMessenger) Name() string                        { return "mock" }
 func (m *mockMessenger) Connect(_ context.Context) error { return nil }
 func (m *mockMessenger) Disconnect() error               { return nil }
 func (m *mockMessenger) IsConnected() bool               { return true }

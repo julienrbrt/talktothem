@@ -32,6 +32,7 @@ type Contact struct {
 }
 
 type Messenger interface {
+	Name() string
 	Connect(ctx context.Context) error
 	Disconnect() error
 	IsConnected() bool
