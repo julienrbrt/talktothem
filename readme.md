@@ -124,6 +124,26 @@ These options run entirely on your machine, ensuring your message history and co
 
 **Environment variable:** `TALKTOTHEM_DATA_PATH` - Path to store database (default: `~/.config/talktothem/`)
 
+## Development
+
+Static assets are generated using `go generate`:
+
+```bash
+go generate ./internal/api
+```
+
+### Running Locally
+
+```bash
+# Generate static assets
+go generate ./internal/api
+
+# Run the server
+go run .
+```
+
+The app will be available at `http://localhost:8080`.
+
 ## How It Works
 
 1. **Connect** your Signal account via the web UI
