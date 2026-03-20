@@ -46,6 +46,7 @@ type Messenger interface {
 	GetConversation(ctx context.Context, contactID string, limit int) ([]Message, error)
 	SendMessage(ctx context.Context, contactID, content string) error
 	SendReaction(ctx context.Context, contactID, messageID, emoji string) error
+	MarkRead(ctx context.Context, contactID string, messageIDs []string) error
 
 	OnMessage(handler func(Message))
 	OnReaction(handler func(Message))

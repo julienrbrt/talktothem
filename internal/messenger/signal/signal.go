@@ -343,6 +343,52 @@ func (c *Client) SendReaction(ctx context.Context, contactID, messageID, emoji s
 	return nil
 }
 
+func (c *Client) MarkRead(ctx context.Context, contactID string, messageIDs []string) error {
+	endpoint := fmt.Sprintf("%s/v1/receipts/%s", c.baseURL, url.PathEscape(c.number))
+
+	var timestamps []int64
+	for _, id := range messageIDs {
+		var ts int64
+		if _, err := fmt.Sscanf(id, "%d", &ts); err == nil {
+			timestamps = append(timestamps, ts)
+		}
+	}
+
+	if len(timestamps) == 0 {
+		return nil
+	}
+
+	payload := map[string]any{
+		"recipient":  contactID,
+		"timestamps": timestamps,
+		"type":       "read",
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send receipts: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("send receipts failed: %s", string(respBody))
+	}
+
+	return nil
+}
+
 func (c *Client) OnMessage(handler func(messenger.Message)) {
 	c.messageHandler = handler
 }
@@ -525,6 +571,7 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 
 	msg := &messenger.Message{
 		Timestamp: time.UnixMilli(envelope.Timestamp),
+		ID:        fmt.Sprintf("%d", envelope.Timestamp),
 	}
 
 	switch {
@@ -534,11 +581,13 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 		msg.Content = sent.Message
 		msg.IsFromMe = true
 		msg.Timestamp = time.UnixMilli(sent.Timestamp)
+		msg.ID = fmt.Sprintf("%d", sent.Timestamp)
 
 	case envelope.DataMessage != nil:
 		msg.ContactID = envelope.Source
 		msg.Content = envelope.DataMessage.Message
 		msg.Timestamp = time.UnixMilli(envelope.DataMessage.Timestamp)
+		msg.ID = fmt.Sprintf("%d", envelope.DataMessage.Timestamp)
 		msg.Type = messenger.TypeText
 
 		if len(envelope.DataMessage.Attachments) > 0 {

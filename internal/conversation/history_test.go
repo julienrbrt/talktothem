@@ -121,6 +121,7 @@ func (m *mockMessenger) SendMessage(_ context.Context, _, _ string) error { retu
 func (m *mockMessenger) SendReaction(_ context.Context, _, _, _ string) error {
 	return nil
 }
+func (m *mockMessenger) MarkRead(_ context.Context, _ string, _ []string) error { return nil }
 func (m *mockMessenger) OnMessage(_ func(messenger.Message))  {}
 func (m *mockMessenger) OnReaction(_ func(messenger.Message)) {}
 func (m *mockMessenger) StartReceiving(_ context.Context)     {}

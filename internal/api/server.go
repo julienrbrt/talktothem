@@ -216,6 +216,12 @@ func (s *Server) listenForAgentResponses() {
 		c, ok := s.contacts.Get(resp.ContactID)
 		if ok {
 			if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
+				if resp.TriggerMessageID != "" {
+					if err := msgr.MarkRead(context.Background(), resp.ContactID, []string{resp.TriggerMessageID}); err != nil {
+						slog.Error("Error marking message as read", "error", err)
+					}
+				}
+
 				err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
 				if err != nil {
 					slog.Error("Error sending agent message to messenger", "error", err)

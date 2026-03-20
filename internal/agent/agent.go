@@ -37,9 +37,10 @@ type Vision interface {
 }
 
 type Response struct {
-	Content   string
-	ContactID string
-	Delay     time.Duration
+	Content          string
+	ContactID        string
+	Delay            time.Duration
+	TriggerMessageID string
 }
 
 type QueuedResponse struct {
@@ -166,7 +167,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	}
 
 	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
-	b.WriteString("\nReply as the user. Match their exact writing style - same level of formality, punctuation habits, emoji use, message length. Sound natural, and NEVER reveal you are an AI:")
+	b.WriteString("\nAnalyze the emotion and intent of the last message(s) and reply as the user would. Match their exact writing style and adjust your tone to the current emotional context. Sound natural, and NEVER reveal you are an AI:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -394,7 +395,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 						return
 					case <-timer.C:
 						select {
-						case a.outbox <- Response{Content: resp, ContactID: cID}:
+						case a.outbox <- Response{Content: resp, ContactID: cID, TriggerMessageID: m.ID}:
 							slog.Info("Agent Response sent to outbox")
 						case <-msgCtx.Done():
 							return
@@ -470,6 +471,7 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	}
 
 	b.WriteString("Write exactly as this person would - same casualness, same quirks. ")
+	b.WriteString("Always match the emotional tone of the conversation. If they are excited, be excited; if they are sad, be supportive; if they are brief, be brief. ")
 	b.WriteString("Avoid AI telltales: no perfect grammar unless they use it, no overly helpful tone, no unnecessary elaboration. ")
 	b.WriteString("Keep it short and real.")
 	return b.String()
