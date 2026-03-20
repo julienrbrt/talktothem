@@ -445,7 +445,7 @@
             const response = await fetch('/api/contacts/' + contactId + '/summary');
             if (response.ok) {
                 const data = await response.json();
-                alert('Dialogue Summary:\n\n' + data.summary);
+                showSummaryModal(data.summary);
             }
         } catch (e) {
             console.error('Error:', e);
@@ -457,10 +457,30 @@
             const response = await fetch('/api/contacts/' + contactId + '/summary?before=' + encodeURIComponent(before));
             if (response.ok) {
                 const data = await response.json();
-                alert('Summary at ' + new Date(before).toLocaleString() + ':\n\n' + data.summary);
+                showSummaryModal(data.summary, 'Summary at ' + new Date(before).toLocaleString());
             }
         } catch (e) {
             console.error('Error:', e);
+        }
+    };
+
+    window.showSummaryModal = function(summary, title = 'Dialogue Summary') {
+        const modal = document.getElementById('summary-modal');
+        const titleEl = document.getElementById('summary-modal-title');
+        const contentEl = document.getElementById('summary-modal-content');
+        if (modal && titleEl && contentEl) {
+            titleEl.textContent = title;
+            contentEl.textContent = summary;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    window.closeSummaryModal = function() {
+        const modal = document.getElementById('summary-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
     };
 
@@ -484,6 +504,26 @@
 {{end}}
 
 {{define "conversation-modals"}}
+<div id="summary-modal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="p-4 md:p-8 border-b border-gray-50 flex items-center justify-between">
+            <h3 id="summary-modal-title" class="text-xl md:text-2xl font-black text-gray-900 tracking-tight">Dialogue Summary<span class="text-purple-600">.</span></h3>
+            <button onclick="closeSummaryModal()" class="text-gray-300 hover:text-gray-900 transition-colors p-1">
+                {{template "icon-close"}}
+            </button>
+        </div>
+        <div class="p-4 md:p-8">
+            <p id="summary-modal-content" class="text-sm text-gray-700 leading-relaxed"></p>
+        </div>
+        <div class="p-4 md:p-8 border-t border-gray-50">
+            <button
+                onclick="closeSummaryModal()"
+                class="w-full bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
 <div id="edit-contact-modal-{{.Contact.ID}}" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div class="p-4 md:p-8 border-b border-gray-50 flex items-center justify-between">
