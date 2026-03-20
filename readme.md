@@ -1,24 +1,51 @@
-# Talk to Them
+<div align="center">
 
-An AI agent that talks to your friends and family for you.
+  <img src="internal/api/static/favicon.svg" width="140" height="140" alt="TalkToThem Logo">
+
+# TalkToThem
+
+**An AI agent that talks to your friends and family for you.**
+
+<a href="#-cloud-deployment"><b>🚀 Deploy Now</b></a> ·
+<a href="#getting-started"><b>📖 Getting Started</b></a> ·
+<a href="#features"><b>✨ Features</b></a>
+
+</div>
+
+---
 
 TalkToThem learns your conversation style by analyzing your message history, then can hold conversations on your behalf with your contacts. Whether it's catching up with mom, chatting with your girlfriend, or responding to friends—the agent sounds like you.
 
+> **Note:** TalkToThem is designed for **1-on-1 conversations only**. Group chats are not currently supported.
+
 ## Features
 
-- **Learns your voice**: Analyzes your conversation patterns and writing style
-- **Multi-modal**: Sees images and can react to messages with appropriate responses
-- **Contact-specific**: Understands different relationships and adjusts accordingly
-- **Hands-free conversations**: Let the agent maintain your social connections
-- **Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
+- **🎯 Learns your voice**: Analyzes your conversation patterns and writing style
+- **👁️ Multi-modal**: Sees images and can react to messages with appropriate responses
+- **👥 Contact-specific**: Understands different relationships and adjusts accordingly
+- **🤝 Hands-free conversations**: Let the agent maintain your social connections
+- **🌐 Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
+- **💾 Persistent storage**: All conversations and styles stored locally
 
 ## Supported Messengers
 
-| Messenger          | Status    |
-| ------------------ | --------- |
-| Signal             | Supported |
-| WhatsApp           | Planned   |
-| Facebook Messenger | Planned   |
+- [ ] Signal
+- [ ] WhatsApp
+
+## 🚀 Cloud Deployment
+
+Deploy TalkToThem instantly to cloud:
+
+| Provider     | Deploy                                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DigitalOcean | [![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/julienrbrt/talktothem/tree/main) |
+
+**Quick setup after deployment:**
+
+1. Access your deployed web UI
+2. Complete onboarding with your OpenAI API key
+3. Link your Signal device (scan QR code)
+4. Import contacts and enable the agent
 
 ## Getting Started
 
@@ -26,7 +53,7 @@ TalkToThem learns your conversation style by analyzing your message history, the
 <summary><b>Option 1: Docker (Recommended)</b></summary>
 
 ```bash
-# Clone the repository
+# Clone repository
 git clone https://github.com/julienrbrt/talktothem.git
 cd talktothem
 
@@ -36,7 +63,7 @@ mkdir -p data/signal
 # Start services
 docker compose up -d
 
-# Open the web UI and complete onboarding
+# Open web UI and complete onboarding
 # http://localhost:8080
 
 # Link Signal device (first time only)
@@ -47,10 +74,11 @@ docker compose up -d
 docker compose logs -f talktothem
 ```
 
-Data is stored in `./data/`:
+**Data is stored in `./data/`:**
 
 - `data/signal/` - Signal registration keys
 - `data/talktothem.db` - SQLite database (config, contacts, messages)
+
 </details>
 
 <details>
@@ -65,7 +93,7 @@ Requires a running [signal-cli-rest-api](https://github.com/bbernhard/signal-cli
 ### Usage
 
 ```bash
-# Start the web server
+# Start web server
 talktothem serve
 talktothem serve --addr :3000  # custom port
 
@@ -77,15 +105,15 @@ talktothem serve --addr :3000  # custom port
 
 ### Configuration
 
-Configuration is done through the web UI during onboarding. Settings are stored in the SQLite database:
+Configuration is done through the web UI during onboarding. Settings are stored in SQLite database:
 
 - **Signal Phone Number** - Your Signal phone number
-- **Signal API URL** - URL of your signal-cli-rest-api instance (default: http://localhost:8080)
+- **Signal API URL** - URL of your signal-cli-rest-api instance (default: http://localhost:8081)
 - **OpenAI API Key** - Your OpenAI API key
 - **Model** - OpenAI model to use (default: gpt-4o)
 - **Base URL** - Optional, for OpenAI-compatible APIs
 
-Environment variable: `TALKTOTHEM_DATA_PATH` - Path to store database (default: `~/.config/talktothem/`)
+**Environment variable:** `TALKTOTHEM_DATA_PATH` - Path to store database (default: `~/.config/talktothem/`)
 
 ## How It Works
 
