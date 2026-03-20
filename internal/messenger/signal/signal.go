@@ -344,24 +344,28 @@ func (c *Client) SendReaction(ctx context.Context, contactID, messageID, emoji s
 }
 
 func (c *Client) MarkRead(ctx context.Context, contactID string, messageIDs []string) error {
-	endpoint := fmt.Sprintf("%s/v1/receipts/%s", c.baseURL, url.PathEscape(c.number))
-
-	var timestamps []int64
-	for _, id := range messageIDs {
-		var ts int64
-		if _, err := fmt.Sscanf(id, "%d", &ts); err == nil {
-			timestamps = append(timestamps, ts)
-		}
-	}
-
-	if len(timestamps) == 0 {
+	if len(messageIDs) == 0 {
 		return nil
 	}
 
+	var lastTimestamp int64
+	for _, id := range messageIDs {
+		var ts int64
+		if _, err := fmt.Sscanf(id, "%d", &ts); err == nil && ts > lastTimestamp {
+			lastTimestamp = ts
+		}
+	}
+
+	if lastTimestamp == 0 {
+		return nil
+	}
+
+	endpoint := fmt.Sprintf("%s/v1/receipts/%s", c.baseURL, url.PathEscape(c.number))
+
 	payload := map[string]any{
-		"recipient":  contactID,
-		"timestamps": timestamps,
-		"type":       "read",
+		"recipient":    contactID,
+		"receipt_type": "read",
+		"timestamp":    lastTimestamp,
 	}
 
 	body, err := json.Marshal(payload)
