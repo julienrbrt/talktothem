@@ -322,24 +322,28 @@ func (s *Server) BroadcastMessage(msg messenger.Message) {
 }
 
 type ContactResponse struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Phone       string `json:"phone"`
-	Messenger   string `json:"messenger"`
-	Enabled     bool   `json:"enabled"`
-	Description string `json:"description"`
-	Style       string `json:"style"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Phone        string `json:"phone"`
+	Messenger    string `json:"messenger"`
+	Enabled      bool   `json:"enabled"`
+	Description  string `json:"description"`
+	Style        string `json:"style"`
+	Relation     string `json:"relation"`
+	BannedTopics string `json:"bannedTopics"`
 }
 
 func contactToResponse(c contact.Contact) ContactResponse {
 	return ContactResponse{
-		ID:          c.ID,
-		Name:        c.Name,
-		Phone:       c.Phone,
-		Messenger:   c.Messenger,
-		Enabled:     c.Enabled,
-		Description: c.Description,
-		Style:       c.Style,
+		ID:           c.ID,
+		Name:         c.Name,
+		Phone:        c.Phone,
+		Messenger:    c.Messenger,
+		Enabled:      c.Enabled,
+		Description:  c.Description,
+		Style:        c.Style,
+		Relation:     c.Relation,
+		BannedTopics: c.BannedTopics,
 	}
 }
 
@@ -431,9 +435,11 @@ func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
 }
 
 type CreateContactRequest struct {
-	Name        string
-	Phone       string
-	Description string
+	Name         string
+	Phone        string
+	Description  string
+	Relation     string
+	BannedTopics string
 }
 
 func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
@@ -443,17 +449,21 @@ func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := CreateContactRequest{
-		Name:        r.FormValue("name"),
-		Phone:       r.FormValue("phone"),
-		Description: r.FormValue("description"),
+		Name:         r.FormValue("name"),
+		Phone:        r.FormValue("phone"),
+		Description:  r.FormValue("description"),
+		Relation:     r.FormValue("relation"),
+		BannedTopics: r.FormValue("bannedTopics"),
 	}
 
 	c := contact.Contact{
-		ID:          req.Phone,
-		Name:        req.Name,
-		Phone:       req.Phone,
-		Description: req.Description,
-		Enabled:     true,
+		ID:           req.Phone,
+		Name:         req.Name,
+		Phone:        req.Phone,
+		Description:  req.Description,
+		Relation:     req.Relation,
+		BannedTopics: req.BannedTopics,
+		Enabled:      true,
 	}
 
 	if err := s.contacts.Add(c); err != nil {
@@ -489,9 +499,11 @@ func (s *Server) getContact(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateContactRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Style       string `json:"style"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Style        string `json:"style"`
+	Relation     string `json:"relation"`
+	BannedTopics string `json:"bannedTopics"`
 }
 
 func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
@@ -512,6 +524,8 @@ func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
 	c.Name = req.Name
 	c.Description = req.Description
 	c.Style = req.Style
+	c.Relation = req.Relation
+	c.BannedTopics = req.BannedTopics
 
 	if err := s.contacts.Add(c); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

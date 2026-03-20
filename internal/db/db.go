@@ -40,6 +40,8 @@ type Contact struct {
 	Enabled     bool
 	Description string `gorm:"type:text"`
 	Style       string `gorm:"type:text"`
+	Relation    string `gorm:"type:text"`
+	BannedTopics string `gorm:"type:text"`
 }
 
 type Message struct {

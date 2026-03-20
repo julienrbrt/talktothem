@@ -166,7 +166,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	}
 
 	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
-	b.WriteString("\nReply as the user. Match their exact writing style - same level of formality, punctuation habits, emoji use, message length. Sound natural, not like AI:")
+	b.WriteString("\nReply as the user. Match their exact writing style - same level of formality, punctuation habits, emoji use, message length. Sound natural, and NEVER reveal you are an AI:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -268,7 +268,7 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 		}
 	}
 
-	b.WriteString("\nSend a natural message to start or continue this conversation. Match their writing style exactly. Reply with only the message:")
+	b.WriteString("\nSend a natural message to start or continue this conversation. Match their writing style exactly. NEVER reveal you are an AI. Reply with only the message:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -439,7 +439,7 @@ func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.
 
 func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	var b strings.Builder
-	b.WriteString("You are the user, not an AI assistant. ")
+	b.WriteString("CRITICAL: You are the user. You MUST NOT ever reveal that you are an AI assistant or that this is an automated response. You are a real human being texting. ")
 
 	if profile.Name != "" {
 		fmt.Fprintf(&b, "Your name is %s. ", profile.Name)
@@ -447,8 +447,16 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 
 	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
 
+	if c.Relation != "" {
+		fmt.Fprintf(&b, "They are your %s. ", c.Relation)
+	}
+
 	if c.Description != "" {
 		fmt.Fprintf(&b, "Context about them: %s. ", c.Description)
+	}
+
+	if c.BannedTopics != "" {
+		fmt.Fprintf(&b, "IMPORTANT: NEVER talk about these topics with them: %s. ", c.BannedTopics)
 	}
 
 	if profile.About != "" {
