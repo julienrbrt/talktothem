@@ -1,363 +1,449 @@
 {{define "base"}}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TalkToThem - AI Agent Manager</title>
-    <link rel="icon" href="/static/favicon.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #6d28d9;
-            --primary-light: #ede9fe;
-            --bg: #fafafa;
-            --sidebar: #ffffff;
-            --border: #e5e7eb;
-            --text-main: #111827;
-            --text-muted: #6b7280;
-        }
-
-        * {
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .mono { font-family: 'JetBrains Mono', monospace; }
-
-        /* Mobile sidebar */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: -100%;
-                top: 0;
-                width: 100%;
-                max-width: 320px;
-                height: 100%;
-                z-index: 50;
-                transition: left 0.3s ease;
-                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TalkToThem - AI Agent Manager</title>
+        <link rel="icon" href="/static/favicon.ico" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --primary: #6d28d9;
+                --primary-light: #ede9fe;
+                --bg: #fafafa;
+                --sidebar: #ffffff;
+                --border: #e5e7eb;
+                --text-main: #111827;
+                --text-muted: #6b7280;
             }
-            .sidebar.open {
-                left: 0;
-                display: flex;
+
+            * {
+                -webkit-tap-highlight-color: transparent;
             }
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 40;
+
+            body {
+                font-family:
+                    "Inter",
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+                background-color: var(--bg);
+                color: var(--text-main);
+                -webkit-font-smoothing: antialiased;
             }
-            .sidebar-overlay.open {
-                display: block;
+
+            .mono {
+                font-family: "JetBrains Mono", monospace;
             }
-        }
 
-        .messenger-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 3px 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-        }
-        .messenger-signal { background: #3a76f0; color: white; }
-        .messenger-whatsapp { background: #25d366; color: white; }
-        .messenger-telegram { background: #0088cc; color: white; }
-        .messenger-unknown { background: #6b7280; color: white; }
-
-        .bubble-sent-signal { background-color: #3a76f0; color: white; }
-        .bubble-sent-whatsapp { background-color: #25d366; color: white; }
-        .bubble-sent-telegram { background-color: #0088cc; color: white; }
-        .bubble-sent-unknown { background-color: #111827; color: white; }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
-
-        /* Glassmorphism & Bento effects */
-        .bento-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            transition: all 0.2s ease;
-        }
-        .bento-card:hover {
-            border-color: #d1d5db;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-        }
-
-        .sidebar-item-active {
-            background-color: var(--primary-light);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .btn-primary {
-            background-color: var(--text-main);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .btn-primary:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .modal-overlay {
-            backdrop-filter: blur(4px);
-            background-color: rgba(0,0,0,0.2);
-        }
-
-        /* Mobile modal adjustments */
-        @media (max-width: 640px) {
-            .modal-overlay > div {
-                max-height: 90vh;
-                overflow-y: auto;
-                border-radius: 24px;
+            /* Mobile sidebar */
+            @media (max-width: 768px) {
+                .sidebar {
+                    position: fixed;
+                    left: -100%;
+                    top: 0;
+                    width: 100%;
+                    max-width: 320px;
+                    height: 100%;
+                    z-index: 50;
+                    transition: left 0.3s ease;
+                    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+                }
+                .sidebar.open {
+                    left: 0;
+                    display: flex;
+                }
+                .sidebar-overlay {
+                    display: none;
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 40;
+                }
+                .sidebar-overlay.open {
+                    display: block;
+                }
             }
-        }
-    </style>
-</head>
-<body class="min-h-screen" hx-boost="true">
-    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
-    {{if .Onboarded}}
+
+            .messenger-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                border-radius: 6px;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                padding: 3px 8px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            }
+            .messenger-signal {
+                background: #3a76f0;
+                color: white;
+            }
+            .messenger-whatsapp {
+                background: #25d366;
+                color: white;
+            }
+            .messenger-telegram {
+                background: #0088cc;
+                color: white;
+            }
+            .messenger-unknown {
+                background: #6b7280;
+                color: white;
+            }
+
+            .bubble-sent-signal {
+                background-color: #3a76f0;
+                color: white;
+            }
+            .bubble-sent-whatsapp {
+                background-color: #25d366;
+                color: white;
+            }
+            .bubble-sent-telegram {
+                background-color: #0088cc;
+                color: white;
+            }
+            .bubble-sent-unknown {
+                background-color: #111827;
+                color: white;
+            }
+
+            /* Custom scrollbar */
+            ::-webkit-scrollbar {
+                width: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #e5e7eb;
+                border-radius: 10px;
+            }
+            ::-webkit-scrollbar-thumb:hover {
+                background: #d1d5db;
+            }
+
+            /* Glassmorphism & Bento effects */
+            .bento-card {
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                transition: all 0.2s ease;
+            }
+            .bento-card:hover {
+                border-color: #d1d5db;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            }
+
+            .sidebar-item-active {
+                background-color: var(--primary-light);
+                color: var(--primary);
+                font-weight: 600;
+            }
+
+            .btn-primary {
+                background-color: var(--text-main);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 10px;
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+            .btn-primary:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+            .modal-overlay {
+                backdrop-filter: blur(4px);
+                background-color: rgba(0, 0, 0, 0.2);
+            }
+
+            /* Mobile modal adjustments */
+            @media (max-width: 640px) {
+                .modal-overlay > div {
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    border-radius: 24px;
+                }
+            }
+        </style>
+    </head>
+    <body class="min-h-screen" hx-boost="true">
+        <div
+            id="sidebar-overlay"
+            class="sidebar-overlay"
+            onclick="closeSidebar()"
+        ></div>
+        {{if .Onboarded}}
         <div id="app" class="flex h-screen flex-col md:flex-row">
-            <div id="mobile-header" class="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between flex-shrink-0">
-                <button onclick="openSidebar()" class="p-2 hover:bg-gray-50 rounded-lg">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            <div
+                id="mobile-header"
+                class="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between flex-shrink-0"
+            >
+                <button
+                    onclick="openSidebar()"
+                    class="p-2 hover:bg-gray-50 rounded-lg"
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"
+                        ></path>
                     </svg>
                 </button>
                 <div class="flex items-center gap-2">
-                    <img src="/static/favicon.svg" class="w-6 h-6 rounded-lg" alt="TalkToThem">
-                    <h1 class="text-base font-black text-gray-900 tracking-tight">TalkToThem<span class="text-purple-600">.</span></h1>
+                    <img
+                        src="/static/favicon.svg"
+                        class="w-6 h-6 rounded-lg"
+                        alt="TalkToThem"
+                    />
+                    <h1
+                        class="text-base font-black text-gray-900 tracking-tight"
+                    >
+                        TalkToThem<span class="text-purple-600">.</span>
+                    </h1>
                 </div>
                 <div class="w-8"></div>
             </div>
-            {{template "sidebar" .}}
-            {{if eq .Page "index"}}
-                {{template "index-content" .}}
-            {{else if eq .Page "conversation"}}
-                {{template "conversation-content" .}}
-            {{else if eq .Page "profile"}}
-                {{template "profile-content" .}}
-            {{else if eq .Page "settings"}}
-                {{template "settings-content" .}}
-            {{end}}
+            {{template "sidebar" .}} {{if eq .Page "index"}} {{template
+            "index-content" .}} {{else if eq .Page "conversation"}} {{template
+            "conversation-content" .}} {{else if eq .Page "profile"}} {{template
+            "profile-content" .}} {{else if eq .Page "settings"}} {{template
+            "settings-content" .}} {{end}}
         </div>
-        {{template "modals" .}}
-        {{if eq .Page "conversation"}}
-            {{template "conversation-modals" .}}
+        {{template "modals" .}} {{if eq .Page "conversation"}} {{template
+        "conversation-modals" .}} {{end}} {{else}} {{template "onboarding" .}}
         {{end}}
-    {{else}}
-        {{template "onboarding" .}}
-    {{end}}
 
-    <div id="toast" class="fixed bottom-4 right-4 hidden z-50">
-        <div class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <span id="toast-message"></span>
+        <div id="toast" class="fixed bottom-4 right-4 hidden z-50">
+            <div
+                class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2"
+            >
+                <span id="toast-message"></span>
+            </div>
         </div>
-    </div>
-    <script>
-    function showToast(message) {
-        const toast = document.getElementById('toast');
-        if (toast) {
-            document.getElementById('toast-message').textContent = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
-    }
-
-    window.openSidebar = function() {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (sidebar && overlay) {
-            sidebar.classList.add('open');
-            overlay.classList.add('open');
-        }
-    };
-
-    window.closeSidebar = function() {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (sidebar && overlay) {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('open');
-        }
-    };
-
-    window.openAddContactModal = function() {
-        closeSidebar();
-        const modal = document.getElementById('new-contact-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-    };
-
-    window.closeAddContactModal = function() {
-        const modal = document.getElementById('new-contact-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    };
-
-    window.createContact = async function(e) {
-        e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-
-        try {
-            const response = await fetch('/api/contacts', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                closeAddContactModal();
-                form.reset();
-                showToast('Contact created');
-                // Reload contact list
-                const contactListResponse = await fetch('/api/contacts');
-                if (contactListResponse.ok) {
-                    document.getElementById('contact-list').innerHTML = await contactListResponse.text();
+        <script>
+            function showToast(message) {
+                const toast = document.getElementById("toast");
+                if (toast) {
+                    document.getElementById("toast-message").textContent =
+                        message;
+                    toast.classList.remove("hidden");
+                    setTimeout(() => toast.classList.add("hidden"), 3000);
                 }
-            } else {
-                showToast('Failed to create contact');
             }
-        } catch (e) {
-            console.error('Error:', e);
-            showToast('Failed to create contact');
-        }
-    };
 
-    window.openActivateModal = async function() {
-        const modal = document.getElementById('activate-modal');
-        const list = document.getElementById('activate-contact-list');
-        if (modal && list) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            list.innerHTML = '<div class="p-12 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Loading...</div>';
+            window.openSidebar = function () {
+                const sidebar = document.querySelector(".sidebar");
+                const overlay = document.getElementById("sidebar-overlay");
+                if (sidebar && overlay) {
+                    sidebar.classList.add("open");
+                    overlay.classList.add("open");
+                }
+            };
 
-            try {
-                const response = await fetch('/api/contacts/all');
-                if (response.ok) {
-                    const contacts = await response.json();
-                    const inactive = contacts.filter(c => !c.enabled);
+            window.closeSidebar = function () {
+                const sidebar = document.querySelector(".sidebar");
+                const overlay = document.getElementById("sidebar-overlay");
+                if (sidebar && overlay) {
+                    sidebar.classList.remove("open");
+                    overlay.classList.remove("open");
+                }
+            };
 
-                    if (inactive.length === 0) {
-                        list.innerHTML = '<div class="p-12 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">No inactive contacts</div>';
+            window.openAddContactModal = function () {
+                closeSidebar();
+                const modal = document.getElementById("new-contact-modal");
+                if (modal) {
+                    modal.classList.remove("hidden");
+                    modal.classList.add("flex");
+                }
+            };
+
+            window.closeAddContactModal = function () {
+                const modal = document.getElementById("new-contact-modal");
+                if (modal) {
+                    modal.classList.add("hidden");
+                    modal.classList.remove("flex");
+                }
+            };
+
+            window.createContact = async function (e) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch("/api/contacts", {
+                        method: "POST",
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        closeAddContactModal();
+                        form.reset();
+                        showToast("Contact created");
+                        // Reload contact list
+                        const contactListResponse =
+                            await fetch("/api/contacts");
+                        if (contactListResponse.ok) {
+                            document.getElementById("contact-list").innerHTML =
+                                await contactListResponse.text();
+                        }
                     } else {
-                        list.innerHTML = inactive.map(c => `
+                        showToast("Failed to create contact");
+                    }
+                } catch (e) {
+                    console.error("Error:", e);
+                    showToast("Failed to create contact");
+                }
+            };
+
+            window.openActivateModal = async function () {
+                const modal = document.getElementById("activate-modal");
+                const list = document.getElementById("activate-contact-list");
+                if (modal && list) {
+                    modal.classList.remove("hidden");
+                    modal.classList.add("flex");
+                    list.innerHTML =
+                        '<div class="p-12 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">Loading...</div>';
+
+                    try {
+                        const response = await fetch("/api/contacts/all");
+                        if (response.ok) {
+                            const contacts = await response.json();
+                            const inactive = contacts.filter((c) => !c.enabled);
+
+                            if (inactive.length === 0) {
+                                list.innerHTML =
+                                    '<div class="p-12 text-center text-gray-400 font-bold text-xs uppercase tracking-widest">No inactive contacts</div>';
+                            } else {
+                                list.innerHTML = inactive
+                                    .map(
+                                        (c) => `
                             <button onclick="enableContact('${c.id}')" class="w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition-all">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <h4 class="font-bold text-gray-900 text-sm">${c.name}</h4>
                                         <p class="text-xs text-gray-400 font-medium">${c.phone}</p>
                                     </div>
-                                    <span class="messenger-badge${c.messenger === 'signal' ? ' messenger-signal' : c.messenger === 'whatsapp' ? ' messenger-whatsapp' : c.messenger === 'telegram' ? ' messenger-telegram' : ' messenger-unknown'}">
+                                    <span class="messenger-badge${c.messenger === "signal" ? " messenger-signal" : c.messenger === "whatsapp" ? " messenger-whatsapp" : c.messenger === "telegram" ? " messenger-telegram" : " messenger-unknown"}">
                                         <span>${c.messenger}</span>
                                     </span>
                                 </div>
                             </button>
-                        `).join('');
+                        `,
+                                    )
+                                    .join("");
+                            }
+                        }
+                    } catch (e) {
+                        list.innerHTML =
+                            '<div class="p-12 text-center text-red-400 font-bold text-xs uppercase tracking-widest">Failed to load</div>';
                     }
                 }
-            } catch (e) {
-                list.innerHTML = '<div class="p-12 text-center text-red-400 font-bold text-xs uppercase tracking-widest">Failed to load</div>';
-            }
-        }
-    };
+            };
 
-    window.closeActivateModal = function() {
-        const modal = document.getElementById('activate-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    };
-
-    window.enableContact = async function(contactId) {
-        try {
-            const response = await fetch('/api/contacts/' + contactId + '/enable', { method: 'POST' });
-            if (response.ok) {
-                closeActivateModal();
-                showToast('Agent activated');
-                // Reload contact list
-                const contactListResponse = await fetch('/api/contacts');
-                if (contactListResponse.ok) {
-                    document.getElementById('contact-list').innerHTML = await contactListResponse.text();
+            window.closeActivateModal = function () {
+                const modal = document.getElementById("activate-modal");
+                if (modal) {
+                    modal.classList.add("hidden");
+                    modal.classList.remove("flex");
                 }
-            } else {
-                showToast('Failed to activate');
-            }
-        } catch (e) {
-            console.error('Error:', e);
-            showToast('Failed to activate');
-        }
-    };
+            };
 
-    window.filterActivateContacts = function() {
-        const search = document.getElementById('activate-search').value.toLowerCase();
-        const list = document.getElementById('activate-contact-list');
-        const buttons = list.querySelectorAll('button');
+            window.enableContact = async function (contactId) {
+                try {
+                    const response = await fetch(
+                        "/api/contacts/" + contactId + "/enable",
+                        { method: "POST" },
+                    );
+                    if (response.ok) {
+                        closeActivateModal();
+                        showToast("Agent activated");
+                        // Reload contact list
+                        const contactListResponse =
+                            await fetch("/api/contacts");
+                        if (contactListResponse.ok) {
+                            document.getElementById("contact-list").innerHTML =
+                                await contactListResponse.text();
+                        }
+                    } else {
+                        showToast("Failed to activate");
+                    }
+                } catch (e) {
+                    console.error("Error:", e);
+                    showToast("Failed to activate");
+                }
+            };
 
-        buttons.forEach(btn => {
-            const name = btn.querySelector('h4')?.textContent.toLowerCase() || '';
-            const phone = btn.querySelector('p')?.textContent.toLowerCase() || '';
-            if (name.includes(search) || phone.includes(search)) {
-                btn.classList.remove('hidden');
-            } else {
-                btn.classList.add('hidden');
-            }
-        });
-    };
+            window.filterActivateContacts = function () {
+                const search = document
+                    .getElementById("activate-search")
+                    .value.toLowerCase();
+                const list = document.getElementById("activate-contact-list");
+                const buttons = list.querySelectorAll("button");
 
-    async function updateConnectionStatus() {
-        const dot = document.getElementById('connection-dot');
-        const text = document.getElementById('connection-text');
-        if (!dot || !text) return;
-        try {
-            const response = await fetch('/api/status');
-            const data = await response.json();
-            if (data.connectionStatus === 'connected') {
-                dot.className = 'w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]';
-                text.textContent = 'Connected';
-                text.className = 'text-[10px] text-green-500 uppercase tracking-[0.15em] font-bold';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-gray-400';
-                text.textContent = 'Offline';
-                text.className = 'text-[10px] text-gray-400 uppercase tracking-[0.15em] font-bold';
+                buttons.forEach((btn) => {
+                    const name =
+                        btn.querySelector("h4")?.textContent.toLowerCase() ||
+                        "";
+                    const phone =
+                        btn.querySelector("p")?.textContent.toLowerCase() || "";
+                    if (name.includes(search) || phone.includes(search)) {
+                        btn.classList.remove("hidden");
+                    } else {
+                        btn.classList.add("hidden");
+                    }
+                });
+            };
+
+            async function updateConnectionStatus() {
+                const dot = document.getElementById("connection-dot");
+                const text = document.getElementById("connection-text");
+                if (!dot || !text) return;
+                try {
+                    const response = await fetch("/api/status");
+                    const data = await response.json();
+                    if (data.connectionStatus === "connected") {
+                        dot.className =
+                            "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
+                        text.textContent = "Connected";
+                        text.className =
+                            "text-[10px] text-green-500 uppercase tracking-[0.15em] font-bold";
+                    } else {
+                        dot.className = "w-2 h-2 rounded-full bg-gray-400";
+                        text.textContent = "Offline";
+                        text.className =
+                            "text-[10px] text-gray-400 uppercase tracking-[0.15em] font-bold";
+                    }
+                } catch (e) {}
             }
-        } catch (e) {}
-    }
-    if (document.getElementById('connection-dot')) {
-        updateConnectionStatus();
-        setInterval(updateConnectionStatus, 15000);
-    }
-    </script>
-</body>
+            if (document.getElementById("connection-dot")) {
+                updateConnectionStatus();
+                setInterval(updateConnectionStatus, 15000);
+            }
+        </script>
+    </body>
 </html>
 {{end}}

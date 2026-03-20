@@ -1,48 +1,68 @@
-{{define "contacts"}}
-{{if .Active}}
+{{define "contacts"}} {{if .Active}}
 <div class="px-6 py-3 bg-gray-50/50 border-b border-gray-100">
-    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Active Agents</span>
+    <span
+        class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]"
+        >Active Agents</span
+    >
 </div>
 {{range .Active}}
-<a href="/conversations/{{.ID}}"
+<a
+    href="/conversations/{{.ID}}"
     class="group block px-6 py-4 border-b border-gray-50 hover:bg-purple-50/30 transition-all relative overflow-hidden contact-item"
-    onclick="selectContact(this)">
+    onclick="selectContact(this)"
+>
     <div class="flex items-center justify-between relative z-10">
         <div class="flex items-center gap-3">
-            <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-            <h3 class="font-bold text-gray-900 text-sm tracking-tight group-hover:text-purple-700 transition-colors">{{.Name}}</h3>
+            <div
+                class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"
+            ></div>
+            <h3
+                class="font-bold text-gray-900 text-sm tracking-tight group-hover:text-purple-700 transition-colors"
+            >
+                {{.Name}}
+            </h3>
         </div>
         {{template "messenger-badge" .Messenger}}
     </div>
     {{if .Description}}
-    <p class="text-[11px] text-gray-400 mt-1 truncate font-medium group-hover:text-gray-500">{{.Description}}</p>
+    <p
+        class="text-[11px] text-gray-400 mt-1 truncate font-medium group-hover:text-gray-500"
+    >
+        {{.Description}}
+    </p>
     {{end}}
 </a>
-{{end}}
-{{end}}
-
-{{if .Inactive}}
+{{end}} {{end}} {{if .Inactive}}
 <div class="px-6 py-3 bg-gray-50/50 border-b border-gray-100">
-    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">Contacts</span>
+    <span
+        class="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]"
+        >Contacts</span
+    >
 </div>
 {{range .Inactive}}
-<a href="/conversations/{{.ID}}"
+<a
+    href="/conversations/{{.ID}}"
     class="group block px-6 py-4 border-b border-gray-50 hover:bg-gray-50 transition-all contact-item"
-    onclick="selectContact(this)">
+    onclick="selectContact(this)"
+>
     <div class="flex items-center justify-between">
-        <h3 class="font-semibold text-gray-600 text-sm tracking-tight group-hover:text-gray-900 transition-colors">{{.Name}}</h3>
+        <h3
+            class="font-semibold text-gray-600 text-sm tracking-tight group-hover:text-gray-900 transition-colors"
+        >
+            {{.Name}}
+        </h3>
         {{template "messenger-badge" .Messenger}}
     </div>
     {{if .Description}}
-    <p class="text-[11px] text-gray-400 mt-1 truncate font-medium">{{.Description}}</p>
+    <p class="text-[11px] text-gray-400 mt-1 truncate font-medium">
+        {{.Description}}
+    </p>
     {{end}}
 </a>
-{{end}}
-{{end}}
-
-{{if and (not .Active) (not .Inactive)}}
+{{end}} {{end}} {{if and (not .Active) (not .Inactive)}}
 <div class="p-10 text-center">
-    <p class="text-xs font-black text-gray-300 uppercase tracking-widest">No Contacts</p>
+    <p class="text-xs font-black text-gray-300 uppercase tracking-widest">
+        No Contacts
+    </p>
 </div>
-{{end}}
-{{end}}
+{{end}} {{end}}

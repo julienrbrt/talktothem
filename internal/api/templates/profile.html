@@ -2,64 +2,101 @@
 <div class="flex-1 overflow-y-auto p-4 md:p-10 bg-[#fafafa]">
     <div class="max-w-3xl mx-auto">
         <header class="mb-6 md:mb-12">
-            <h2 class="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">Identity Profile<span class="text-purple-600">.</span></h2>
-            <p class="text-gray-500 font-medium mt-1 text-sm md:text-base">Define the core persona of your digital twin.</p>
+            <h2
+                class="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight"
+            >
+                Identity Profile<span class="text-purple-600">.</span>
+            </h2>
+            <p class="text-gray-500 font-medium mt-1 text-sm md:text-base">
+                Define the core persona of your digital twin.
+            </p>
         </header>
 
         <section class="bento-card p-4 md:p-8 bg-white">
-            <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-6 md:space-y-8">
+            <form
+                id="profile-form"
+                onsubmit="saveProfile(event)"
+                class="space-y-6 md:space-y-8"
+            >
                 <div class="space-y-4 md:space-y-6">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Name</label>
+                        <label
+                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                            >Your Name</label
+                        >
                         <input
                             type="text"
                             id="profile-name"
                             class="w-full bg-white border border-gray-200 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold"
-                            placeholder="Display Name">
+                            placeholder="Display Name"
+                        />
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Persona Summary</label>
+                        <label
+                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                            >Persona Summary</label
+                        >
                         <textarea
                             id="profile-about"
                             rows="3"
                             class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                            placeholder="Key personality traits, hobbies, and general bio..."></textarea>
+                            placeholder="Key personality traits, hobbies, and general bio..."
+                        ></textarea>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pt-4 border-t border-gray-50">
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pt-4 border-t border-gray-50"
+                >
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Family & Friends</label>
+                        <label
+                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                            >Family & Friends</label
+                        >
                         <textarea
                             id="profile-family"
                             rows="4"
                             class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                            placeholder="Relationships, history, and family specific context..."></textarea>
+                            placeholder="Relationships, history, and family specific context..."
+                        ></textarea>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Work & Career</label>
+                        <label
+                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                            >Work & Career</label
+                        >
                         <textarea
                             id="profile-work"
                             rows="4"
                             class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                            placeholder="Career, workplace dynamics, and professional tone..."></textarea>
+                            placeholder="Career, workplace dynamics, and professional tone..."
+                        ></textarea>
                     </div>
                 </div>
 
                 <div class="space-y-2 pt-4">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Writing Style</label>
+                    <label
+                        class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                        >Writing Style</label
+                    >
                     <textarea
                         id="profile-style"
                         rows="4"
                         class="w-full bg-purple-50/50 border border-purple-200 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-300 transition-all font-medium"
-                        placeholder="Default writing habits: sentence length, emoji frequency, slang..."></textarea>
-                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter ml-1">Default style used for all conversations</p>
+                        placeholder="Default writing habits: sentence length, emoji frequency, slang..."
+                    ></textarea>
+                    <p
+                        class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter ml-1"
+                    >
+                        Default style used for all conversations
+                    </p>
                 </div>
 
                 <div class="flex justify-end pt-6 md:pt-8">
                     <button
                         type="submit"
-                        class="bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 md:py-4 px-8 md:px-10 rounded-xl md:rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
+                        class="bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 md:py-4 px-8 md:px-10 rounded-xl md:rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
+                    >
                         Save Profile
                     </button>
                 </div>
@@ -69,46 +106,51 @@
 </div>
 
 <script>
-(function() {
-    window.loadProfile = async function() {
-        try {
-            const response = await fetch('/api/profile');
-            if (response.ok) {
-                const profile = await response.json();
-                document.getElementById('profile-name').value = profile.name || '';
-                document.getElementById('profile-about').value = profile.about || '';
-                document.getElementById('profile-family').value = profile.familyContext || '';
-                document.getElementById('profile-work').value = profile.workContext || '';
-                document.getElementById('profile-style').value = profile.writingStyle || '';
+    (function () {
+        window.loadProfile = async function () {
+            try {
+                const response = await fetch("/api/profile");
+                if (response.ok) {
+                    const profile = await response.json();
+                    document.getElementById("profile-name").value =
+                        profile.name || "";
+                    document.getElementById("profile-about").value =
+                        profile.about || "";
+                    document.getElementById("profile-family").value =
+                        profile.familyContext || "";
+                    document.getElementById("profile-work").value =
+                        profile.workContext || "";
+                    document.getElementById("profile-style").value =
+                        profile.writingStyle || "";
+                }
+            } catch (e) {
+                console.error(e);
             }
-        } catch (e) {
-            console.error(e);
-        }
-    };
-
-    window.saveProfile = async function(e) {
-        e.preventDefault();
-        const data = {
-            name: document.getElementById('profile-name').value,
-            about: document.getElementById('profile-about').value,
-            familyContext: document.getElementById('profile-family').value,
-            workContext: document.getElementById('profile-work').value,
-            writingStyle: document.getElementById('profile-style').value
         };
 
-        try {
-            const response = await fetch('/api/profile', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            if (response.ok) showToast('Identity updated');
-        } catch (e) {
-            showToast('Update failed');
-        }
-    };
+        window.saveProfile = async function (e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById("profile-name").value,
+                about: document.getElementById("profile-about").value,
+                familyContext: document.getElementById("profile-family").value,
+                workContext: document.getElementById("profile-work").value,
+                writingStyle: document.getElementById("profile-style").value,
+            };
 
-    loadProfile();
-})();
+            try {
+                const response = await fetch("/api/profile", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data),
+                });
+                if (response.ok) showToast("Identity updated");
+            } catch (e) {
+                showToast("Update failed");
+            }
+        };
+
+        loadProfile();
+    })();
 </script>
 {{end}}
