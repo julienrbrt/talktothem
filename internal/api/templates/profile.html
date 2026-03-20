@@ -40,6 +40,14 @@
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Job, career info, work relationships..."></textarea>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Writing Style</label>
+                    <textarea
+                        id="profile-style"
+                        rows="3"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Default style to use when no contact-specific style exists (e.g., short sentences, lots of emojis, informal)..."></textarea>
+                </div>
                 
                 <div class="flex justify-end gap-2 pt-2">
                     <button
@@ -64,6 +72,7 @@
                 document.getElementById('profile-about').value = profile.about || '';
                 document.getElementById('profile-family').value = profile.familyContext || '';
                 document.getElementById('profile-work').value = profile.workContext || '';
+                document.getElementById('profile-style').value = profile.writingStyle || '';
             }
         } catch (e) {
             console.error('Error loading profile:', e);
@@ -77,7 +86,8 @@
             name: document.getElementById('profile-name').value,
             about: document.getElementById('profile-about').value,
             familyContext: document.getElementById('profile-family').value,
-            workContext: document.getElementById('profile-work').value
+            workContext: document.getElementById('profile-work').value,
+            writingStyle: document.getElementById('profile-style').value
         };
 
         try {

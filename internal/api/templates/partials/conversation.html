@@ -30,6 +30,20 @@
                     {{if .Contact.Enabled}}Disable Agent{{else}}Enable Agent{{end}}
                 </button>
                 <button
+                    onclick="syncConversation('{{.Contact.ID}}')"
+                    class="p-2 hover:bg-gray-100 rounded-lg" title="Sync history">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button>
+                <button
+                    onclick="learnStyle('{{.Contact.ID}}')"
+                    class="p-2 hover:bg-gray-100 rounded-lg" title="Learn writing style">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                    </svg>
+                </button>
+                <button
                     onclick="openEditModal('{{.Contact.ID}}')"
                     class="p-2 hover:bg-gray-100 rounded-lg">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,9 +60,12 @@
                 <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                 <span class="text-green-600 font-medium">Agent Active</span>
             </div>
-            {{if .Contact.Style}}
-            <p class="text-xs text-gray-500 mt-1 italic">{{.Contact.Style}}</p>
-            {{end}}
+        </div>
+        {{end}}
+
+        {{if .Contact.Style}}
+        <div class="mt-3">
+            <p class="text-xs text-gray-500 italic">{{.Contact.Style}}</p>
         </div>
         {{end}}
 
@@ -113,7 +130,8 @@
 
         const data = {
             name: document.getElementById('edit-name-' + contactId).value,
-            description: document.getElementById('edit-description-' + contactId).value
+            description: document.getElementById('edit-description-' + contactId).value,
+            style: document.getElementById('edit-style-' + contactId).value
         };
 
         try {
@@ -175,6 +193,36 @@
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
+        }
+    };
+
+    window.syncConversation = async function(contactId) {
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/sync', { method: 'POST' });
+            if (response.ok) {
+                showToast('History synced!');
+                location.reload();
+            } else {
+                alert('Failed to sync history');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to sync history');
+        }
+    };
+
+    window.learnStyle = async function(contactId) {
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/learn-style', { method: 'POST' });
+            if (response.ok) {
+                showToast('Writing style learned!');
+                location.reload();
+            } else {
+                alert('Failed to learn style: history might be too short');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to learn style');
         }
     };
 
@@ -315,6 +363,15 @@
                         id="edit-description-{{.Contact.ID}}"
                         rows="2"
                         class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">{{.Contact.Description}}</textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Talking Style</label>
+                    <textarea
+                        name="style"
+                        id="edit-style-{{.Contact.ID}}"
+                        rows="2"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Learned or manual talking style...">{{.Contact.Style}}</textarea>
                 </div>
             </div>
             <div class="p-4 border-t border-gray-200 flex justify-end gap-2">

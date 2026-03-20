@@ -448,6 +448,7 @@ func (s *Server) getContact(w http.ResponseWriter, r *http.Request) {
 type UpdateContactRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	Style       string `json:"style"`
 }
 
 func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
@@ -467,6 +468,7 @@ func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
 
 	c.Name = req.Name
 	c.Description = req.Description
+	c.Style = req.Style
 
 	if err := s.contacts.Add(c); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -622,6 +624,14 @@ func (s *Server) syncConversation(w http.ResponseWriter, r *http.Request) {
 	if err := s.agent.SyncHistory(r.Context(), msgr, id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Try to learn style if not set
+	if c.Style == "" {
+		style, _ := s.agent.LearnStyle(r.Context(), id)
+		if style != "" {
+			_ = s.contacts.SetStyle(id, style)
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
@@ -1093,6 +1103,7 @@ type UserProfileResponse struct {
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
+	WritingStyle  string `json:"writingStyle"`
 }
 
 func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -1103,6 +1114,7 @@ func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
 		About:         profile.About,
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
+		WritingStyle:  profile.WritingStyle,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1114,6 +1126,7 @@ type UpdateUserProfileRequest struct {
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
+	WritingStyle  string `json:"writingStyle"`
 }
 
 func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -1128,6 +1141,7 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.About = req.About
 	profile.FamilyContext = req.FamilyContext
 	profile.WorkContext = req.WorkContext
+	profile.WritingStyle = req.WritingStyle
 
 	if err := db.UpdateUserProfile(profile); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1140,6 +1154,7 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 		About:         profile.About,
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
+		WritingStyle:  profile.WritingStyle,
 	})
 }
 

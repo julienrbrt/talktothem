@@ -127,11 +127,12 @@ func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, err
 
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
 	recent := h.GetRecent(20)
+	profile := db.GetUserProfile()
 
 	var b strings.Builder
-	b.WriteString(systemPrompt(c))
+	b.WriteString(systemPrompt(c, profile))
 
-	appendStyleContext(&b, c, recent)
+	appendStyleContext(&b, c, profile, recent)
 
 	b.WriteString("\nConversation history:\n")
 	for _, m := range recent {
@@ -235,11 +236,12 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 	}
 
 	recent := h.GetRecent(10)
+	profile := db.GetUserProfile()
 
 	var b strings.Builder
-	b.WriteString(systemPrompt(c))
+	b.WriteString(systemPrompt(c, profile))
 
-	appendStyleContext(&b, c, recent)
+	appendStyleContext(&b, c, profile, recent)
 
 	if len(recent) > 0 {
 		b.WriteString("\nRecent conversation:\n")
@@ -329,11 +331,10 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 	}
 }
 
-func systemPrompt(c contact.Contact) string {
+func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	var b strings.Builder
 	b.WriteString("You are the user, not an AI assistant. ")
 
-	profile := db.GetUserProfile()
 	if profile.Name != "" {
 		fmt.Fprintf(&b, "Your name is %s. ", profile.Name)
 	}
@@ -360,9 +361,11 @@ func systemPrompt(c contact.Contact) string {
 	return b.String()
 }
 
-func appendStyleContext(b *strings.Builder, c contact.Contact, recent []messenger.Message) {
+func appendStyleContext(b *strings.Builder, c contact.Contact, profile *db.UserProfile, recent []messenger.Message) {
 	if c.Style != "" {
 		fmt.Fprintf(b, "\nYour style with this person: %s\n", c.Style)
+	} else if profile.WritingStyle != "" {
+		fmt.Fprintf(b, "\nYour overall writing style: %s\n", profile.WritingStyle)
 	}
 
 	var userExamples []string
