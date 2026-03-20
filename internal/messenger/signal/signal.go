@@ -411,6 +411,7 @@ func (c *Client) receiveLoop(ctx context.Context) {
 			// Set read deadline to detect stale connections
 			if err := conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
 				slog.Error("Signal Failed to set read deadline", "error", err)
+				conn.Close()
 				break
 			}
 
@@ -419,8 +420,7 @@ func (c *Client) receiveLoop(ctx context.Context) {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					slog.Info("Signal WebSocket closed normally", "error", err)
 				} else if err.Error() == "read timeout" || strings.Contains(err.Error(), "timeout") {
-					slog.Debug("Signal Read timeout, connection still alive, continuing...")
-					continue
+					slog.Debug("Signal Read timeout, reconnecting...")
 				} else {
 					slog.Error("Signal WebSocket read error", "error", err)
 				}
