@@ -1,3 +1,4 @@
+{{define "messages"}}
 {{range .}}
 <div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}}">
     <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg {{if .IsFromMe}}bg-blue-600 text-white{{else}}bg-white border border-gray-200{{end}}">
@@ -12,4 +13,5 @@
 <div class="flex items-center justify-center h-full">
     <p class="text-gray-500">No messages yet</p>
 </div>
+{{end}}
 {{end}}

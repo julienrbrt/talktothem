@@ -5,26 +5,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TalkToThem - AI Agent Manager</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233b82f6'/%3E%3Cpath d='M30 45 Q50 65 70 45' stroke='white' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='35' cy='35' r='5' fill='white'/%3E%3Ccircle cx='65' cy='35' r='5' fill='white'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234c1d95'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='%23111'/%3E%3Crect x='5' y='5' width='90' height='90' rx='18' fill='url(%23g)'/%3E%3Cpath d='M30 38c0-4.4 3.6-8 8-8h24c4.4 0 8 3.6 8 8v14c0 4.4-3.6 8-8 8H48l-10 8v-8h0c-4.4 0-8-3.6-8-8V38z' fill='white' opacity='.95'/%3E%3Ccircle cx='43' cy='45' r='2.5' fill='%234c1d95'/%3E%3Ccircle cx='57' cy='45' r='2.5' fill='%234c1d95'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6d28d9;
+            --primary-light: #ede9fe;
+            --bg: #fafafa;
+            --sidebar: #ffffff;
+            --border: #e5e7eb;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
         .messenger-badge {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
+            font-size: 9px;
+            font-weight: 800;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1px 4px;
         }
         .messenger-signal { background: #3a76f0; color: white; }
         .messenger-whatsapp { background: #25d366; color: white; }
         .messenger-telegram { background: #0088cc; color: white; }
         .messenger-unknown { background: #6b7280; color: white; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
+
+        /* Glassmorphism & Bento effects */
+        .bento-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+        .bento-card:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        .sidebar-item-active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background-color: var(--text-main);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+            background-color: rgba(0,0,0,0.2);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen" hx-boost="true">
+<body class="min-h-screen" hx-boost="true">
     {{if .Onboarded}}
         <div id="app" class="flex h-screen">
             {{template "sidebar" .}}

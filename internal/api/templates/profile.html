@@ -1,63 +1,78 @@
 {{define "profile-content"}}
-<div class="flex-1 overflow-y-auto p-6">
-    <div class="max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Your Profile</h1>
+<div class="flex-1 overflow-y-auto p-10 bg-[#fafafa]">
+    <div class="max-w-3xl mx-auto">
+        <header class="mb-12">
+            <h2 class="text-4xl font-extrabold text-gray-900 tracking-tight">Identity Profile<span class="text-purple-600">.</span></h2>
+            <p class="text-gray-500 font-medium mt-1">Define the core persona of your digital twin.</p>
+        </header>
 
-        <div class="bg-white rounded-lg shadow mb-6">
-            <div class="p-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800">Personal Information</h2>
-            </div>
-            <form id="profile-form" onsubmit="saveProfile(event)" class="p-4 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                    <input
-                        type="text"
-                        id="profile-name"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="What should the AI call you?">
+        <section class="bento-card p-8 bg-white">
+            <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1">
+                        <div class="w-32 h-32 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 group hover:border-purple-200 hover:bg-purple-50 transition-all cursor-pointer">
+                            <svg class="w-10 h-10 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <span class="text-[9px] font-black uppercase tracking-widest">Avatar</span>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Legal Identity</label>
+                            <input
+                                type="text"
+                                id="profile-name"
+                                class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-bold"
+                                placeholder="Display Name">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Persona Summary</label>
+                            <textarea
+                                id="profile-about"
+                                rows="3"
+                                class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
+                                placeholder="Key personality traits, hobbies, and general bio..."></textarea>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">About You</label>
-                    <textarea
-                        id="profile-about"
-                        rows="3"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Basic info about yourself (hobbies, interests, personality)..."></textarea>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-gray-50">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Social Matrix (Family)</label>
+                        <textarea
+                            id="profile-family"
+                            rows="4"
+                            class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
+                            placeholder="Relationships, history, and family specific context..."></textarea>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Professional Matrix (Work)</label>
+                        <textarea
+                            id="profile-work"
+                            rows="4"
+                            class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
+                            placeholder="Career, workplace dynamics, and professional tone..."></textarea>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Family Context</label>
-                    <textarea
-                        id="profile-family"
-                        rows="3"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Family relationships, important people, family dynamics..."></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Work Context</label>
-                    <textarea
-                        id="profile-work"
-                        rows="3"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Job, career info, work relationships..."></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Global Writing Style</label>
+
+                <div class="space-y-2 pt-4">
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Linguistic Signature (Style)</label>
                     <textarea
                         id="profile-style"
-                        rows="3"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Default style to use when no contact-specific style exists (e.g., short sentences, lots of emojis, informal)..."></textarea>
+                        rows="4"
+                        class="w-full bg-purple-50/30 border border-purple-100/50 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all italic font-medium"
+                        placeholder="Default writing habits: sentence length, emoji frequency, slang..."></textarea>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter ml-1">This signature is used when contact-specific style is undefined.</p>
                 </div>
                 
-                <div class="flex justify-end gap-2 pt-2">
+                <div class="flex justify-end pt-8">
                     <button
                         type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
-                        Save Profile
+                        class="bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-4 px-10 rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
+                        Synchronize Identity
                     </button>
                 </div>
             </form>
-        </div>
+        </section>
     </div>
 </div>
 
@@ -75,13 +90,12 @@
                 document.getElementById('profile-style').value = profile.writingStyle || '';
             }
         } catch (e) {
-            console.error('Error loading profile:', e);
+            console.error(e);
         }
     };
 
     window.saveProfile = async function(e) {
         e.preventDefault();
-
         const data = {
             name: document.getElementById('profile-name').value,
             about: document.getElementById('profile-about').value,
@@ -96,19 +110,12 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-
-            if (response.ok) {
-                showToast('Profile saved!', 'success');
-            } else {
-                showToast('Failed to save profile', 'error');
-            }
+            if (response.ok) showToast('Identity updated');
         } catch (e) {
-            console.error('Error:', e);
-            showToast('Failed to save profile', 'error');
+            showToast('Update failed');
         }
     };
 
-    // Load profile on page load
     loadProfile();
 })();
 </script>
