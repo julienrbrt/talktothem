@@ -23,7 +23,7 @@
                     </div>
                     <div id="signal-status" class="flex items-center gap-3">
                         <div id="signal-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
-                        <span id="signal-text" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Idle</span>
+                        <span id="signal-text" class="text-xs font-semibold text-gray-500">Idle</span>
                     </div>
                 </div>
 
@@ -38,8 +38,8 @@
                             <p id="signal-number" class="text-sm font-bold text-gray-900 leading-none">
                                 Not Linked
                             </p>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1">
-                                Status: <span id="signal-status-label">Offline</span>
+                            <p class="text-xs font-semibold text-gray-500 mt-1">
+                                <span id="signal-status-label">Offline</span>
                             </p>
                         </div>
                     </div>
@@ -85,8 +85,8 @@
                             <p class="text-sm font-bold text-gray-900 leading-none">
                                 All Protocols
                             </p>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1">
-                                Import from messengers
+                            <p class="text-xs font-semibold text-gray-500 mt-1">
+                                Sync contacts from messengers
                             </p>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                 <form id="api-config-form" onsubmit="saveApiConfig(event)" class="space-y-4 md:space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Access Token</label>
+                            <label class="text-xs font-semibold text-gray-500 ml-1">Access Token</label>
                             <input
                                 type="password"
                                 id="config-apiKey"
@@ -119,7 +119,7 @@
                                 placeholder="sk-..." />
                         </div>
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Model ID</label>
+                            <label class="text-xs font-semibold text-gray-500 ml-1">Model ID</label>
                             <input
                                 type="text"
                                 id="config-model"
@@ -129,7 +129,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Endpoint URL</label>
+                        <label class="text-xs font-semibold text-gray-500 ml-1">Endpoint URL</label>
                         <input
                             type="url"
                             id="config-baseUrl"
@@ -145,7 +145,7 @@
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-gray-900">Simulated Latency</p>
-                                <p class="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Human typing simulation</p>
+                                <p class="text-xs font-semibold text-purple-500">Human typing simulation</p>
                             </div>
                         </div>
                         <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full shadow-inner flex-shrink-0">
@@ -186,18 +186,18 @@
                 ) {
                     dot.className =
                         "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
-                    text.textContent = "Active";
+                    text.textContent = "Connected";
                     text.className =
-                        "text-[10px] font-black text-green-500 uppercase tracking-widest";
+                        "text-xs font-semibold text-green-600";
                     label.textContent = "Connected";
                     number.textContent =
                         data.messengers.signal?.phone || "Linked";
                     relinkBtn.textContent = "Relink";
                     relinkBtn.classList.remove("hidden");
                 } else {
-                    dot.className = "w-2.5 h-2.5 rounded-full bg-gray-300";
-                    text.textContent = "Idle";
-                    label.textContent = "Offline";
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-gray-400";
+                    text.textContent = "Disconnected";
+                    label.textContent = "Not Connected";
                     number.textContent = "Not Linked";
                     relinkBtn.textContent = "Link Device";
                     relinkBtn.classList.remove("hidden");
