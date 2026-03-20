@@ -1,6 +1,8 @@
 package contact
 
 import (
+	"strings"
+
 	"github.com/julienrbrt/talktothem/internal/db"
 )
 
@@ -13,6 +15,9 @@ func NewManager(dataPath string) (*Manager, error) {
 }
 
 func (m *Manager) Add(contact Contact) error {
+	if contact.Relation == "" {
+		contact.Relation = m.InferRelation(contact.Name)
+	}
 	return db.DB.Save(&contact).Error
 }
 
@@ -52,4 +57,53 @@ func (m *Manager) SetEnabled(id string, enabled bool) error {
 
 func (m *Manager) SetStyle(id, style string) error {
 	return db.DB.Model(&Contact{}).Where("id = ?", id).Update("style", style).Error
+}
+
+func (m *Manager) InferRelation(name string) string {
+	name = strings.ToLower(name)
+
+	// Family
+	if containsAny(name, "mom", "mother", "maman", "mummy") {
+		return "Mother"
+	}
+	if containsAny(name, "dad", "father", "papa", "daddy") {
+		return "Father"
+	}
+	if containsAny(name, "bro", "brother", "frere") {
+		return "Brother"
+	}
+	if containsAny(name, "sis", "sister", "soeur") {
+		return "Sister"
+	}
+	if containsAny(name, "wife", "hubby", "husband", "spouse", "femme", "mari") {
+		return "Spouse"
+	}
+	if containsAny(name, "son", "daughter", "fils", "fille") {
+		return "Child"
+	}
+	if containsAny(name, "grandma", "grandmother", "grand-mère", "mamie") {
+		return "Grandmother"
+	}
+	if containsAny(name, "grandpa", "grandfather", "grand-père", "papy") {
+		return "Grandfather"
+	}
+
+	// Professional
+	if containsAny(name, "boss", "manager", "director", "ceo") {
+		return "Boss"
+	}
+	if containsAny(name, "colleague", "work", "office") {
+		return "Colleague"
+	}
+
+	return ""
+}
+
+func containsAny(s string, keywords ...string) bool {
+	for _, kw := range keywords {
+		if strings.Contains(s, kw) {
+			return true
+		}
+	}
+	return false
 }

@@ -60,6 +60,41 @@ func TestManager(t *testing.T) {
 		_, ok := m.Get("+1234567890")
 		assert.False(t, ok)
 	})
+
+	t.Run("infer relation", func(t *testing.T) {
+		cases := []struct {
+			name     string
+			expected string
+		}{
+			{"Mom", "Mother"},
+			{"My Mother", "Mother"},
+			{"Dad", "Father"},
+			{"Brother John", "Brother"},
+			{"Sister Mary", "Sister"},
+			{"Wife", "Spouse"},
+			{"The Boss", "Boss"},
+			{"Work Colleague", "Colleague"},
+			{"Random Friend", ""},
+		}
+
+		for _, tc := range cases {
+			assert.Equal(t, tc.expected, m.InferRelation(tc.name), tc.name)
+		}
+	})
+
+	t.Run("add contact with inferred relation", func(t *testing.T) {
+		c := Contact{
+			ID:    "+999",
+			Name:  "Mom",
+			Phone: "+999",
+		}
+		err := m.Add(c)
+		require.NoError(t, err)
+
+		got, ok := m.Get("+999")
+		assert.True(t, ok)
+		assert.Equal(t, "Mother", got.Relation)
+	})
 }
 
 func TestManagerPersistence(t *testing.T) {
