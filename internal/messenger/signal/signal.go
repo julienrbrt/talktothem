@@ -544,6 +544,11 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 				ContentType string `json:"contentType"`
 				Filename    string `json:"filename"`
 			} `json:"attachments"`
+			Sticker *struct {
+				PackID string `json:"packId"`
+				StickerID int `json:"stickerId"`
+				Filename string `json:"filename"`
+			} `json:"sticker"`
 		} `json:"dataMessage"`
 
 		SyncMessage *struct {
@@ -592,7 +597,14 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 
 		if len(envelope.DataMessage.Attachments) > 0 {
 			msg.Type = messenger.TypeImage
-			msg.MediaURL = envelope.DataMessage.Attachments[0].Filename
+			for _, att := range envelope.DataMessage.Attachments {
+				msg.MediaURLs = append(msg.MediaURLs, att.Filename)
+			}
+		}
+
+		if envelope.DataMessage.Sticker != nil {
+			msg.Type = messenger.TypeSticker
+			msg.MediaURLs = append(msg.MediaURLs, envelope.DataMessage.Sticker.Filename)
 		}
 
 	case envelope.Reaction != nil:

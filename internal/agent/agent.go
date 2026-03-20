@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -151,23 +152,48 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 
 	b.WriteString("\nConversation history:\n")
 	for _, m := range recent {
+		prefix := fmt.Sprintf("%s: ", c.Name)
 		if m.IsFromMe {
-			fmt.Fprintf(&b, "You: %s\n", m.Content)
-		} else {
-			fmt.Fprintf(&b, "%s: %s\n", c.Name, m.Content)
+			prefix = "You: "
+		}
+
+		switch m.Type {
+		case messenger.TypeImage:
+			fmt.Fprintf(&b, "%s[Sent an image]\n", prefix)
+		case messenger.TypeSticker:
+			fmt.Fprintf(&b, "%s[Sent a sticker]\n", prefix)
+		case messenger.TypeReaction:
+			fmt.Fprintf(&b, "%s[Reacted with %s]\n", prefix, m.Reaction)
+		default:
+			fmt.Fprintf(&b, "%s%s\n", prefix, m.Content)
 		}
 	}
 
-	if msg.Type == messenger.TypeImage && a.vision != nil {
-		desc, err := a.vision.Describe(ctx, []byte(msg.MediaURL))
-		if err != nil {
-			desc = "[Unable to describe image]"
+	if a.vision != nil {
+		for i, path := range msg.MediaURLs {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				slog.Error("Agent Failed to read media file", "path", path, "error", err)
+				continue
+			}
+
+			desc, err := a.vision.Describe(ctx, data)
+			if err != nil {
+				desc = "[Unable to describe]"
+			}
+			msgType := "image"
+			if msg.Type == messenger.TypeSticker {
+				msgType = "sticker"
+			}
+			fmt.Fprintf(&b, "\n%s sent %s %d: %s\n", c.Name, msgType, i+1, desc)
 		}
-		fmt.Fprintf(&b, "\n%s sent an image: %s\n", c.Name, desc)
 	}
 
 	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
-	b.WriteString("\nAnalyze the emotion and intent of the last message(s) and reply as the user would. Match their exact writing style and adjust your tone to the current emotional context. Sound natural, and NEVER reveal you are an AI:")
+	b.WriteString("\nAnalyze the emotion and intent of the last message(s). Reply as the user would. ")
+	b.WriteString("Match their exact writing style and adjust your tone to the current emotional context. ")
+	b.WriteString("If a short reaction emoji (e.g., ❤️, 👍, 😂) is more appropriate than a text message, start your reply with 'REACTION: ' followed by the emoji. ")
+	b.WriteString("Sound natural, and NEVER reveal you are an AI:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -188,7 +214,7 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 
 	var mine []string
 	for _, m := range messages {
-		if m.IsFromMe {
+		if m.IsFromMe && m.Type == messenger.TypeText && m.Content != "" {
 			mine = append(mine, m.Content)
 		}
 	}
@@ -280,6 +306,14 @@ func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error 
 		return err
 	}
 	return h.Add(msg)
+}
+
+func (a *Agent) ClearHistory(contactID string) error {
+	h, err := a.history(contactID)
+	if err != nil {
+		return err
+	}
+	return h.Clear()
 }
 
 func (a *Agent) SetLLM(llm LLM) {

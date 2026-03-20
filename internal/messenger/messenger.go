@@ -11,6 +11,7 @@ const (
 	TypeText     MessageType = "text"
 	TypeImage    MessageType = "image"
 	TypeReaction MessageType = "reaction"
+	TypeSticker  MessageType = "sticker"
 )
 
 var Supported = []string{"signal", "whatsapp", "telegram"}
@@ -20,7 +21,7 @@ type Message struct {
 	ContactID string
 	Content   string
 	Type      MessageType
-	MediaURL  string
+	MediaURLs []string
 	Timestamp time.Time
 	IsFromMe  bool
 	Reaction  string

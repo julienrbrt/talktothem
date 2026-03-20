@@ -67,6 +67,13 @@
                     </svg>
                 </button>
                 <button
+                    onclick="clearHistory('{{.Contact.ID}}')"
+                    class="p-2 hover:bg-gray-100 rounded-lg" title="Clear history">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+                <button
                     onclick="openEditModal('{{.Contact.ID}}')"
                     class="p-2 hover:bg-gray-100 rounded-lg">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +136,22 @@
         {{range .Messages}}
         <div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}} group relative">
             <div class="max-w-[70%] {{if .IsFromMe}}bg-blue-500 text-white{{else}}bg-white text-gray-800{{end}} rounded-lg px-4 py-2 shadow-sm">
-                <p class="text-sm text-balance">{{.Content}}</p>
+                {{if eq .Type "reaction"}}
+                    <div class="text-2xl mb-1">{{.Reaction}}</div>
+                {{else}}
+                    {{if .MediaURLs}}
+                    <div class="grid grid-cols-1 gap-2 mb-2">
+                        {{range .MediaURLs}}
+                        <img src="/api/media?path={{.}}" class="rounded-lg max-h-64 object-contain bg-gray-100" loading="lazy">
+                        {{end}}
+                    </div>
+                    {{end}}
+                    
+                    {{if .Content}}
+                    <p class="text-sm text-balance">{{.Content}}</p>
+                    {{end}}
+                {{end}}
+                
                 <div class="flex items-center justify-between mt-1">
                     <p class="text-xs {{if .IsFromMe}}text-blue-100{{else}}text-gray-400{{end}}">{{.Timestamp.Format "15:04"}}</p>
                     <button 
@@ -270,6 +292,23 @@
             console.error('Error:', e);
             showToast('Failed to sync history', 'error');
         }
+    };
+
+    window.clearHistory = async function(contactId) {
+        showConfirm('Clear History', 'Are you sure you want to clear the conversation history for this contact? This will reset the mood context for the agent.', async () => {
+            try {
+                const response = await fetch('/api/contacts/' + contactId + '/history', { method: 'DELETE' });
+                if (response.ok) {
+                    showToast('History cleared!', 'success');
+                    location.reload();
+                } else {
+                    showToast('Failed to clear history', 'error');
+                }
+            } catch (e) {
+                console.error('Error:', e);
+                showToast('Failed to clear history', 'error');
+            }
+        }, 'Clear', 'bg-red-600 hover:bg-red-700');
     };
 
     window.learnStyle = async function(contactId) {

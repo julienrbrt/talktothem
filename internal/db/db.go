@@ -49,7 +49,7 @@ type Message struct {
 	ContactID string
 	Content   string `gorm:"type:text"`
 	Type      string
-	MediaURL  string
+	MediaURLs string `gorm:"type:text"` // Comma separated URLs
 	Timestamp int64
 	IsFromMe  bool
 	Reaction  string

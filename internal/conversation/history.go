@@ -2,6 +2,7 @@ package conversation
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func (h *History) Add(msg messenger.Message) error {
 		ContactID: h.contactID,
 		Content:   msg.Content,
 		Type:      string(msg.Type),
-		MediaURL:  msg.MediaURL,
+		MediaURLs: strings.Join(msg.MediaURLs, ","),
 		Timestamp: msg.Timestamp.UnixMilli(),
 		IsFromMe:  msg.IsFromMe,
 		Reaction:  msg.Reaction,
@@ -74,12 +75,16 @@ func (h *History) getMessages(limit int, before *time.Time, since *time.Time) []
 
 	messages := make([]messenger.Message, len(dbMessages))
 	for i, m := range dbMessages {
+		var mediaURLs []string
+		if m.MediaURLs != "" {
+			mediaURLs = strings.Split(m.MediaURLs, ",")
+		}
 		messages[i] = messenger.Message{
 			ID:        m.ID,
 			ContactID: m.ContactID,
 			Content:   m.Content,
 			Type:      messenger.MessageType(m.Type),
-			MediaURL:  m.MediaURL,
+			MediaURLs: mediaURLs,
 			Timestamp: time.UnixMilli(m.Timestamp),
 			IsFromMe:  m.IsFromMe,
 			Reaction:  m.Reaction,
@@ -97,12 +102,16 @@ func (h *History) GetSince(since time.Time) []messenger.Message {
 
 	messages := make([]messenger.Message, len(dbMessages))
 	for i, m := range dbMessages {
+		var mediaURLs []string
+		if m.MediaURLs != "" {
+			mediaURLs = strings.Split(m.MediaURLs, ",")
+		}
 		messages[i] = messenger.Message{
 			ID:        m.ID,
 			ContactID: m.ContactID,
 			Content:   m.Content,
 			Type:      messenger.MessageType(m.Type),
-			MediaURL:  m.MediaURL,
+			MediaURLs: mediaURLs,
 			Timestamp: time.UnixMilli(m.Timestamp),
 			IsFromMe:  m.IsFromMe,
 			Reaction:  m.Reaction,
@@ -133,7 +142,7 @@ func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID str
 				ContactID: h.contactID,
 				Content:   msg.Content,
 				Type:      string(msg.Type),
-				MediaURL:  msg.MediaURL,
+				MediaURLs: strings.Join(msg.MediaURLs, ","),
 				Timestamp: msg.Timestamp.UnixMilli(),
 				IsFromMe:  msg.IsFromMe,
 				Reaction:  msg.Reaction,
@@ -143,6 +152,18 @@ func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID str
 	}
 
 	return nil
+}
+
+func (h *History) GetMessageCount() (int, error) {
+	var count int64
+	if err := db.DB.Model(&db.Message{}).Where("contact_id = ?", h.contactID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (h *History) Clear() error {
+	return db.DB.Where("contact_id = ?", h.contactID).Delete(&db.Message{}).Error
 }
 
 func GetAllContactIDs() ([]string, error) {
@@ -159,12 +180,16 @@ func GetLastMessage(contactID string) (*messenger.Message, error) {
 		return nil, err
 	}
 
+	var mediaURLs []string
+	if dbMsg.MediaURLs != "" {
+		mediaURLs = strings.Split(dbMsg.MediaURLs, ",")
+	}
 	return &messenger.Message{
 		ID:        dbMsg.ID,
 		ContactID: dbMsg.ContactID,
 		Content:   dbMsg.Content,
 		Type:      messenger.MessageType(dbMsg.Type),
-		MediaURL:  dbMsg.MediaURL,
+		MediaURLs: mediaURLs,
 		Timestamp: time.UnixMilli(dbMsg.Timestamp),
 		IsFromMe:  dbMsg.IsFromMe,
 		Reaction:  dbMsg.Reaction,

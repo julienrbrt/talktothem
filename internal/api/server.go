@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -138,10 +139,14 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 		r.Get("/contacts/{id}/conversation", s.getConversation)
 		r.Post("/contacts/{id}/message", s.sendMessage)
 		r.Post("/contacts/{id}/sync", s.syncConversation)
+		r.Delete("/contacts/{id}/history", s.clearHistory)
 		r.Post("/contacts/{id}/learn-style", s.learnStyle)
 		r.Post("/contacts/{id}/initiate", s.initiateConversation)
 		r.Get("/contacts/{id}/response-check", s.checkResponse)
 		r.Get("/contacts/{id}/summary", s.getSummary)
+
+		// Media
+		r.Get("/media", s.getMedia)
 
 		// User Profile
 		r.Get("/profile", s.getUserProfile)
@@ -222,9 +227,17 @@ func (s *Server) listenForAgentResponses() {
 					}
 				}
 
-				err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
-				if err != nil {
-					slog.Error("Error sending agent message to messenger", "error", err)
+				if emoji, found := strings.CutPrefix(resp.Content, "REACTION: "); found {
+					emoji = strings.TrimSpace(emoji)
+					err := msgr.SendReaction(context.Background(), resp.ContactID, resp.TriggerMessageID, emoji)
+					if err != nil {
+						slog.Error("Error sending agent reaction to messenger", "error", err)
+					}
+				} else {
+					err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
+					if err != nil {
+						slog.Error("Error sending agent message to messenger", "error", err)
+					}
 				}
 			}
 		}
@@ -236,6 +249,11 @@ func (s *Server) listenForAgentResponses() {
 			Type:      messenger.TypeText,
 			Timestamp: time.Now(),
 			IsFromMe:  true,
+		}
+		if emoji, found := strings.CutPrefix(resp.Content, "REACTION: "); found {
+			msg.Type = messenger.TypeReaction
+			msg.Reaction = strings.TrimSpace(emoji)
+			msg.Content = ""
 		}
 		if err := s.agent.RecordMessage(context.Background(), msg); err != nil {
 			slog.Error("Error recording agent message", "error", err)
@@ -293,6 +311,22 @@ func (s *Server) getSummary(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+}
+
+func (s *Server) getMedia(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		http.Error(w, "path is required", http.StatusBadRequest)
+		return
+	}
+
+	// Simple security check: path should not contain ..
+	if strings.Contains(path, "..") {
+		http.Error(w, "invalid path", http.StatusForbidden)
+		return
+	}
+
+	http.ServeFile(w, r, path)
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -358,7 +392,7 @@ type MessageResponse struct {
 	ContactID string    `json:"contactId"`
 	Content   string    `json:"content"`
 	Type      string    `json:"type"`
-	MediaURL  string    `json:"mediaUrl,omitempty"`
+	MediaURLs []string  `json:"mediaUrls,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	IsFromMe  bool      `json:"isFromMe"`
 	Reaction  string    `json:"reaction,omitempty"`
@@ -370,7 +404,7 @@ func messageToResponse(m messenger.Message) MessageResponse {
 		ContactID: m.ContactID,
 		Content:   m.Content,
 		Type:      string(m.Type),
-		MediaURL:  m.MediaURL,
+		MediaURLs: m.MediaURLs,
 		Timestamp: m.Timestamp,
 		IsFromMe:  m.IsFromMe,
 		Reaction:  m.Reaction,
@@ -700,6 +734,17 @@ func (s *Server) syncConversation(w http.ResponseWriter, r *http.Request) {
 		if style != "" {
 			_ = s.contacts.SetStyle(id, style)
 		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) clearHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := s.agent.ClearHistory(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
