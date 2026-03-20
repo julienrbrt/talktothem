@@ -1,277 +1,6 @@
-{{define "conversation-page"}}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TalkToThem - {{.Contact.Name}}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .messenger-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .messenger-signal { background: #3a76f0; color: white; }
-        .messenger-whatsapp { background: #25d366; color: white; }
-        .messenger-telegram { background: #0088cc; color: white; }
-        .messenger-unknown { background: #6b7280; color: white; }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen">
-<div id="app" class="flex h-screen">
-    {{template "sidebar" .}}
-    <main class="flex-1 flex flex-col bg-gray-50">
-        {{template "conversation-content" .}}
-    </main>
-</div>
-{{template "conversation-modals" .}}
-{{template "modals" .}}
-<script>
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    if (toast) {
-        document.getElementById('toast-message').textContent = message;
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
-    }
-}
-
-function openEditModal(contactId) {
-    const modal = document.getElementById('edit-contact-modal-' + contactId);
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeEditModal(contactId) {
-    const modal = document.getElementById('edit-contact-modal-' + contactId);
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-}
-
-async function toggleAgent(btn, contactId, action) {
-    try {
-        const response = await fetch('/api/contacts/' + contactId + '/' + action, { method: 'POST' });
-        if (response.ok) {
-            location.reload();
-        }
-    } catch (e) {
-        console.error('Error:', e);
-    }
-}
-
-async function updateContact(e, contactId) {
-    e.preventDefault();
-
-    const data = {
-        name: document.getElementById('edit-name-' + contactId).value,
-        description: document.getElementById('edit-description-' + contactId).value
-    };
-
-    try {
-        const response = await fetch('/api/contacts/' + contactId, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-            closeEditModal(contactId);
-            location.reload();
-        } else {
-            alert('Failed to update contact');
-        }
-    } catch (e) {
-        console.error('Error:', e);
-        alert('Failed to update contact');
-    }
-}
-
-async function deleteContact(contactId) {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
-
-    try {
-        const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
-        if (response.ok) {
-            closeEditModal(contactId);
-            location.href = '/';
-        }
-    } catch (e) {
-        console.error('Error:', e);
-        alert('Failed to delete contact');
-    }
-}
-
-async function loadContacts() {
-    try {
-        const response = await fetch('/api/contacts');
-        if (response.ok) {
-            const html = await response.text();
-            document.getElementById('contact-list').innerHTML = html;
-        }
-    } catch (e) {
-        console.error('Error loading contacts:', e);
-    }
-}
-
-function selectContact(el) {
-    document.querySelectorAll('.contact-item').forEach(item => {
-        item.classList.remove('bg-blue-50');
-    });
-    el.classList.add('bg-blue-50');
-}
-
-async function initiateConversation(contactId) {
-    const btn = document.getElementById('start-convo-btn');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Starting...';
-
-    try {
-        const response = await fetch('/api/contacts/' + contactId + '/initiate', { method: 'POST' });
-        if (response.ok) {
-            const data = await response.json();
-            showToast('Conversation started!');
-            if (data.message) {
-                alert('AI says: ' + data.message);
-            }
-            location.reload();
-        } else {
-            const text = await response.text();
-            alert('Failed to start conversation: ' + text);
-        }
-    } catch (e) {
-        console.error('Error:', e);
-        alert('Failed to start conversation');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadMessages().then(() => {
-        loadContacts();
-        connectWebSocket();
-    });
-});
-
-async function loadMessages() {
-    try {
-        const response = await fetch('/api/contacts/{{.Contact.ID}}/conversation');
-        if (response.ok) {
-            const html = await response.text();
-            const container = document.querySelector('.flex-1.overflow-y-auto');
-            if (container) {
-                container.innerHTML = html;
-                const messageDivs = container.querySelectorAll('[class*="rounded-lg"]');
-                messageDivs.forEach(div => {
-                    const timeText = div.querySelector('.text-gray-400, .text-blue-100');
-                    if (timeText) {
-                        loadedMessageIds.add(div.textContent.trim() + timeText.textContent);
-                    }
-                });
-            }
-        }
-    } catch (e) {
-        console.error('Error loading messages:', e);
-    }
-}
-
-let ws = null;
-let currentContactId = '{{.Contact.ID}}';
-let loadedMessageIds = new Set();
-let initialized = false;
-
-function connectWebSocket() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
-
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'agent_response') {
-            const payload = data.payload;
-            if (payload.contactId === currentContactId) {
-                appendMessage({
-                    content: payload.content,
-                    isFromMe: true,
-                    timestamp: new Date()
-                });
-            }
-        } else if (data.type === 'new_message') {
-            const payload = data.payload;
-            if (payload.contactId === currentContactId) {
-                appendMessage({
-                    content: payload.content,
-                    isFromMe: payload.isFromMe,
-                    timestamp: payload.timestamp
-                });
-            }
-        }
-    };
-
-    ws.onclose = () => {
-        console.log('WebSocket disconnected, reconnecting in 3s...');
-        setTimeout(connectWebSocket, 3000);
-    };
-
-    ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-    };
-}
-
-function appendMessage(msg) {
-    const container = document.querySelector('.flex-1.overflow-y-auto');
-    if (!container) return;
-
-    const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const messageId = msg.content + time;
-
-    if (loadedMessageIds.has(messageId)) {
-        console.log('Duplicate message, skipping:', messageId);
-        return;
-    }
-
-    loadedMessageIds.add(messageId);
-
-    const emptyState = container.querySelector('.text-center');
-    if (emptyState) {
-        emptyState.remove();
-    }
-
-    const messageHtml = `
-        <div class="flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}">
-            <div class="max-w-[70%] ${msg.isFromMe ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'} rounded-lg px-4 py-2 shadow-sm">
-                <p class="text-sm">${escapeHtml(msg.content)}</p>
-                <p class="text-xs ${msg.isFromMe ? 'text-blue-100' : 'text-gray-400'} mt-1">${time}</p>
-            </div>
-        </div>
-    `;
-
-    container.insertAdjacentHTML('beforeend', messageHtml);
-    container.scrollTop = container.scrollHeight;
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-</script>
-</body>
-</html>
-{{end}}
-
 {{define "conversation-content"}}
-<div class="flex-1 flex flex-col">
-    <header class="bg-white border-b border-gray-200 p-4">
+<div class="flex-1 flex flex-col h-full">
+    <header class="bg-white border-b border-gray-200 p-4 flex-shrink-0">
         <div class="flex items-center justify-between">
             <div>
                 <div class="flex items-center gap-2">
@@ -330,7 +59,7 @@ function escapeHtml(text) {
         {{end}}
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3">
         {{if .Messages}}
         {{range .Messages}}
         <div class="flex {{if .IsFromMe}}justify-end{{else}}justify-start{{end}}">
@@ -341,7 +70,7 @@ function escapeHtml(text) {
         </div>
         {{end}}
         {{else}}
-        <div class="flex-1 flex items-center justify-center">
+        <div class="flex-1 flex items-center justify-center h-full">
             <div class="text-center text-gray-500">
                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
@@ -353,6 +82,212 @@ function escapeHtml(text) {
         {{end}}
     </div>
 </div>
+
+<script>
+(function() {
+    window.openEditModal = function(contactId) {
+        const modal = document.getElementById('edit-contact-modal-' + contactId);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    };
+
+    window.closeEditModal = function(contactId) {
+        const modal = document.getElementById('edit-contact-modal-' + contactId);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    };
+
+    window.toggleAgent = async function(btn, contactId, action) {
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/' + action, { method: 'POST' });
+            if (response.ok) {
+                location.reload();
+            }
+        } catch (e) {
+            console.error('Error:', e);
+        }
+    };
+
+    window.updateContact = async function(e, contactId) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('edit-name-' + contactId).value,
+            description: document.getElementById('edit-description-' + contactId).value
+        };
+
+        try {
+            const response = await fetch('/api/contacts/' + contactId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                closeEditModal(contactId);
+                location.reload();
+            } else {
+                alert('Failed to update contact');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to update contact');
+        }
+    };
+
+    window.deleteContact = async function(contactId) {
+        if (!confirm('Are you sure you want to delete this contact?')) return;
+
+        try {
+            const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
+            if (response.ok) {
+                closeEditModal(contactId);
+                location.href = '/';
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to delete contact');
+        }
+    };
+
+    window.initiateConversation = async function(contactId) {
+        const btn = document.getElementById('start-convo-btn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Starting...';
+
+        try {
+            const response = await fetch('/api/contacts/' + contactId + '/initiate', { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                showToast('Conversation started!');
+                if (data.message) {
+                    alert('AI says: ' + data.message);
+                }
+                location.reload();
+            } else {
+                const text = await response.text();
+                alert('Failed to start conversation: ' + text);
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to start conversation');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    };
+
+    function scrollToBottom() {
+        const container = document.getElementById('messages-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    let ws = null;
+    let currentContactId = '{{.Contact.ID}}';
+    let loadedMessageIds = new Set();
+
+    function connectWebSocket() {
+        if (window.convoWs) {
+            window.convoWs.close();
+        }
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+        window.convoWs = ws;
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'agent_response') {
+                const payload = data.payload;
+                if (payload.contactId === currentContactId) {
+                    appendMessage({
+                        content: payload.content,
+                        isFromMe: true,
+                        timestamp: new Date()
+                    });
+                }
+            } else if (data.type === 'new_message') {
+                const payload = data.payload;
+                if (payload.contactId === currentContactId) {
+                    appendMessage({
+                        content: payload.content,
+                        isFromMe: payload.isFromMe,
+                        timestamp: payload.timestamp
+                    });
+                }
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket disconnected, reconnecting in 3s...');
+            setTimeout(connectWebSocket, 3000);
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    }
+
+    function appendMessage(msg) {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+
+        const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        const messageId = msg.content + time;
+
+        if (loadedMessageIds.has(messageId)) {
+            console.log('Duplicate message, skipping:', messageId);
+            return;
+        }
+
+        loadedMessageIds.add(messageId);
+
+        const emptyState = container.querySelector('.text-center');
+        if (emptyState) {
+            emptyState.parentNode.remove();
+        }
+
+        const messageHtml = `
+            <div class="flex ${msg.isFromMe ? 'justify-end' : 'justify-start'}">
+                <div class="max-w-[70%] ${msg.isFromMe ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'} rounded-lg px-4 py-2 shadow-sm">
+                    <p class="text-sm">${escapeHtml(msg.content)}</p>
+                    <p class="text-xs ${msg.isFromMe ? 'text-blue-100' : 'text-gray-400'} mt-1">${time}</p>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', messageHtml);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function init() {
+        connectWebSocket();
+        scrollToBottom();
+        const container = document.getElementById('messages-container');
+        if (container) {
+            const messageDivs = container.querySelectorAll('.rounded-lg');
+            messageDivs.forEach(div => {
+                const contentText = div.querySelector('.text-sm');
+                const timeText = div.querySelector('.text-xs');
+                if (contentText && timeText) {
+                    loadedMessageIds.add(contentText.textContent.trim() + timeText.textContent.trim());
+                }
+            });
+        }
+    }
+
+    init();
+})();
+</script>
 {{end}}
 
 {{define "conversation-modals"}}

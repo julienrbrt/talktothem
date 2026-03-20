@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TalkToThem - AI Agent Manager</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%233b82f6'/%3E%3Cpath d='M30 45 Q50 65 70 45' stroke='white' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='35' cy='35' r='5' fill='white'/%3E%3Ccircle cx='65' cy='35' r='5' fill='white'/%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <style>
         .messenger-badge {
             display: inline-flex;
@@ -24,8 +26,43 @@
         .messenger-unknown { background: #6b7280; color: white; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    {{template "content" .}}
+<body class="bg-gray-100 min-h-screen" hx-boost="true">
+    {{if .Onboarded}}
+        <div id="app" class="flex h-screen">
+            {{template "sidebar" .}}
+            {{if eq .Page "index"}}
+                {{template "index-content" .}}
+            {{else if eq .Page "conversation"}}
+                {{template "conversation-content" .}}
+            {{else if eq .Page "profile"}}
+                {{template "profile-content" .}}
+            {{else if eq .Page "settings"}}
+                {{template "settings-content" .}}
+            {{end}}
+        </div>
+        {{template "modals" .}}
+        {{if eq .Page "conversation"}}
+            {{template "conversation-modals" .}}
+        {{end}}
+    {{else}}
+        {{template "onboarding" .}}
+    {{end}}
+
+    <div id="toast" class="fixed bottom-4 right-4 hidden z-50">
+        <div class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+    <script>
+    function showToast(message) {
+        const toast = document.getElementById('toast');
+        if (toast) {
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+    }
+    </script>
 </body>
 </html>
 {{end}}

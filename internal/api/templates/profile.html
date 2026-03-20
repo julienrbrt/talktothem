@@ -1,0 +1,109 @@
+{{define "profile-content"}}
+<div class="flex-1 overflow-y-auto p-6">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Your Profile</h1>
+
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Personal Information</h2>
+            </div>
+            <form id="profile-form" onsubmit="saveProfile(event)" class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                    <input
+                        type="text"
+                        id="profile-name"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="What should the AI call you?">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">About You</label>
+                    <textarea
+                        id="profile-about"
+                        rows="3"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Basic info about yourself (hobbies, interests, personality)..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Family Context</label>
+                    <textarea
+                        id="profile-family"
+                        rows="3"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Family relationships, important people, family dynamics..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Work Context</label>
+                    <textarea
+                        id="profile-work"
+                        rows="3"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Job, career info, work relationships..."></textarea>
+                </div>
+                
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        Save Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.loadProfile = async function() {
+        try {
+            const response = await fetch('/api/profile');
+            if (response.ok) {
+                const profile = await response.json();
+                document.getElementById('profile-name').value = profile.name || '';
+                document.getElementById('profile-about').value = profile.about || '';
+                document.getElementById('profile-family').value = profile.familyContext || '';
+                document.getElementById('profile-work').value = profile.workContext || '';
+            }
+        } catch (e) {
+            console.error('Error loading profile:', e);
+        }
+    };
+
+    window.saveProfile = async function(e) {
+        e.preventDefault();
+
+        const data = {
+            name: document.getElementById('profile-name').value,
+            about: document.getElementById('profile-about').value,
+            familyContext: document.getElementById('profile-family').value,
+            workContext: document.getElementById('profile-work').value
+        };
+
+        try {
+            const response = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                if (typeof showToast === 'function') {
+                    showToast('Profile saved!');
+                } else {
+                    alert('Profile saved!');
+                }
+            } else {
+                alert('Failed to save profile');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            alert('Failed to save profile');
+        }
+    };
+
+    // Load profile on page load
+    loadProfile();
+})();
+</script>
+{{end}}

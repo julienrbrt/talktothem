@@ -1,8 +1,12 @@
 {{define "contacts"}}
-{{range .}}
-<div
-    class="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors contact-item"
-    onclick="location.href='/conversations/{{.ID}}'; selectContact(this)">
+{{if .Active}}
+<div class="px-4 py-2 bg-gray-50 border-b border-gray-200">
+    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Active Agents</span>
+</div>
+{{range .Active}}
+<a href="/conversations/{{.ID}}"
+    class="block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors contact-item"
+    onclick="selectContact(this)">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
             <h3 class="font-medium text-gray-800">{{.Name}}</h3>
@@ -18,11 +22,37 @@
     {{if .Style}}
     <p class="text-xs text-gray-400 mt-1 truncate italic">Style: {{.Style}}</p>
     {{end}}
+</a>
+{{end}}
+{{end}}
+
+{{if .Inactive}}
+<div class="px-4 py-2 bg-gray-50 border-b border-gray-200 border-t-2 border-t-gray-300">
+    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contacts</span>
 </div>
-{{else}}
+{{range .Inactive}}
+<a href="/conversations/{{.ID}}"
+    class="block p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors contact-item"
+    onclick="selectContact(this)">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <h3 class="font-medium text-gray-800">{{.Name}}</h3>
+            <span class="messenger-badge messenger-{{.Messenger}}" title="{{.Messenger}}">
+                {{if eq .Messenger "signal"}}S{{else if eq .Messenger "whatsapp"}}W{{else if eq .Messenger "telegram"}}T{{else}}?{{end}}
+            </span>
+        </div>
+    </div>
+    {{if .Description}}
+    <p class="text-xs text-gray-500 mt-1 truncate">{{.Description}}</p>
+    {{end}}
+</a>
+{{end}}
+{{end}}
+
+{{if and (not .Active) (not .Inactive)}}
 <div class="p-4 text-gray-500 text-center text-sm">
-    No active agents<br>
-    <span class="text-xs">Click "Activate Agent" to start</span>
+    No contacts<br>
+    <span class="text-xs">Click "+ Add Contact" to start</span>
 </div>
 {{end}}
 {{end}}

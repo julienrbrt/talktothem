@@ -119,10 +119,6 @@ func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, err
 		return "", fmt.Errorf("get history: %w", err)
 	}
 
-	if err := h.Add(msg); err != nil {
-		return "", fmt.Errorf("add to history: %w", err)
-	}
-
 	return a.generateResponse(ctx, c, h, msg)
 }
 
@@ -346,8 +342,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 			}
 			fmt.Printf("[Agent] Received message from %s: %s\n", msg.ContactID, msg.Content)
 			if msg.IsFromMe {
-				fmt.Println("[Agent] Message is from me, recording only")
-				_ = a.RecordMessage(ctx, msg)
+				fmt.Println("[Agent] Message is from me, skipping generation")
 				continue
 			}
 

@@ -32,6 +32,14 @@ func (m *Manager) List() []Contact {
 	return contacts
 }
 
+func (m *Manager) ListActiveConversations() []Contact {
+	var contacts []Contact
+	db.DB.Where("enabled = ? OR EXISTS (SELECT 1 FROM messages WHERE messages.contact_id = contacts.id)", true).
+		Order("COALESCE((SELECT MAX(timestamp) FROM messages WHERE messages.contact_id = contacts.id), 0) DESC").
+		Find(&contacts)
+	return contacts
+}
+
 func (m *Manager) ListEnabled() []Contact {
 	var contacts []Contact
 	db.DB.Where("enabled = ?", true).Order("COALESCE((SELECT MAX(timestamp) FROM messages WHERE messages.contact_id = contacts.id), 0) DESC").Find(&contacts)

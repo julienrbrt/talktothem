@@ -90,6 +90,8 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 	tmpl := template.Must(template.ParseFS(templatesFS,
 		"templates/base.html",
 		"templates/index.html",
+		"templates/settings.html",
+		"templates/profile.html",
 		"templates/partials/*.html",
 	))
 
@@ -117,6 +119,12 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 		// Signal device linking
 		r.Get("/signal/link/start", s.startSignalLinking)
 		r.Get("/signal/link/status", s.getSignalLinkStatus)
+		r.Post("/signal/unlink", s.unlinkSignal)
+		r.Post("/signal/update-number", s.updateSignalNumber)
+
+		// Configuration
+		r.Get("/config", s.getConfig)
+		r.Put("/config", s.updateConfig)
 
 		// Contacts
 		r.Get("/contacts", s.listContacts)
@@ -143,6 +151,8 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 	r.Get("/ws", s.handleWebSocket)
 
 	r.Get("/", s.indexPage)
+	r.Get("/settings", s.settingsPage)
+	r.Get("/profile", s.profilePage)
 	r.Get("/conversations/{id}", s.conversationDetailPage)
 
 	if s.assets != nil {
@@ -314,20 +324,34 @@ func messageToResponse(m messenger.Message) MessageResponse {
 	}
 }
 
-func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
-	contacts := s.contacts.ListEnabled()
+type SidebarData struct {
+	Active   []ContactResponse
+	Inactive []ContactResponse
+}
 
-	var response []ContactResponse
+func (s *Server) getSidebarData() SidebarData {
+	contacts := s.contacts.ListActiveConversations()
+
+	var active, inactive []ContactResponse
 	for _, c := range contacts {
-		response = append(response, contactToResponse(c))
+		resp := contactToResponse(c)
+		if c.Enabled {
+			active = append(active, resp)
+		} else {
+			inactive = append(inactive, resp)
+		}
 	}
 
-	if response == nil {
-		response = []ContactResponse{}
+	return SidebarData{
+		Active:   active,
+		Inactive: inactive,
 	}
+}
 
+func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
+	data := s.getSidebarData()
 	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "contacts", response)
+	s.templates.ExecuteTemplate(w, "contacts", data)
 }
 
 func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
@@ -369,7 +393,7 @@ func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
 		Name:        req.Name,
 		Phone:       req.Phone,
 		Description: req.Description,
-		Enabled:     false,
+		Enabled:     true,
 	}
 
 	if err := s.contacts.Add(c); err != nil {
@@ -378,7 +402,7 @@ func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return updated contact list for HTMX
-	contacts := s.contacts.List()
+	contacts := s.contacts.ListActiveConversations()
 	var response []ContactResponse
 	for _, ct := range contacts {
 		response = append(response, contactToResponse(ct))
@@ -655,7 +679,7 @@ type MessengerStatus struct {
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
 	signalCfg := db.GetMessengerConfig("signal")
-	hasSignal := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" && s.messenger != nil
+	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	contacts := s.contacts.List()
 	var connected int
 	for _, c := range contacts {
@@ -682,16 +706,32 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := StatusResponse{
-		Onboarded:      hasAPIKey && hasSignal,
-		HasSignal:      hasSignal,
+		Onboarded:      hasAPIKey && hasSignalConfig,
+		HasSignal:      hasSignalConfig && s.messenger != nil,
 		HasAPIKey:      hasAPIKey,
 		SignalNumber:   signalNumber,
 		ConnectedCount: connected,
 		Messengers:     messengers,
 	}
 
-	if response.HasSignal {
-		response.ConnectionStatus = "connected"
+	// Actually verify Signal connection by checking if device is still linked
+	if hasSignalConfig && s.signalClient != nil {
+		linked, number, err := s.signalClient.IsLinked(r.Context())
+		if err == nil && linked {
+			response.ConnectionStatus = "connected"
+			// Update messenger status with actual connection state
+			if status, ok := messengers["signal"]; ok {
+				status.Connected = true
+				messengers["signal"] = status
+			}
+			// Update number if it changed
+			if number != "" {
+				response.SignalNumber = number
+			}
+		} else {
+			response.ConnectionStatus = "disconnected"
+			response.HasSignal = false
+		}
 	} else {
 		response.ConnectionStatus = "disconnected"
 	}
@@ -859,7 +899,7 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Return updated contact list for HTMX
-	contacts := s.contacts.List()
+	contacts := s.contacts.ListActiveConversations()
 	var response []ContactResponse
 	for _, ct := range contacts {
 		response = append(response, contactToResponse(ct))
@@ -873,9 +913,13 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 }
 
 
-type IndexData struct {
-	Onboarded bool
-	HasSignal bool
+type PageData struct {
+	Onboarded   bool
+	HasSignal   bool
+	SidebarData SidebarData
+	Page        string
+	Contact     contact.Contact
+	Messages    []MessageResponse
 }
 
 func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
@@ -884,21 +928,17 @@ func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
 	hasSignal := hasSignalConfig && s.messenger != nil
 
-	data := IndexData{
-		Onboarded: hasAPIKey && hasSignalConfig,
-		HasSignal: hasSignal,
+	data := PageData{
+		Page:        "index",
+		Onboarded:   hasAPIKey && hasSignalConfig,
+		HasSignal:   hasSignal,
+		SidebarData: s.getSidebarData(),
 	}
 
 	w.Header().Set("Content-Type", "text/html")
 	if err := s.templates.ExecuteTemplate(w, "base", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-type ConversationData struct {
-	Contact   contact.Contact
-	Messages  []MessageResponse
-	HasSignal bool
 }
 
 func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) {
@@ -925,17 +965,22 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 		msgResponses = []MessageResponse{}
 	}
 
+	hasAPIKey := s.config.APIKey != ""
 	signalCfg := db.GetMessengerConfig("signal")
-	hasSignal := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" && s.messenger != nil
+	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
+	hasSignal := hasSignalConfig && s.messenger != nil
 
-	data := ConversationData{
-		Contact:   c,
-		Messages:  msgResponses,
-		HasSignal: hasSignal,
+	data := PageData{
+		Page:        "conversation",
+		Onboarded:   hasAPIKey && hasSignalConfig,
+		Contact:     c,
+		Messages:    msgResponses,
+		HasSignal:   hasSignal,
+		SidebarData: s.getSidebarData(),
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	if err := s.templates.ExecuteTemplate(w, "conversation-page", data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "base", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -993,5 +1038,139 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
 	})
+}
+
+func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
+	hasAPIKey := s.config.APIKey != ""
+	signalCfg := db.GetMessengerConfig("signal")
+	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
+	hasSignal := hasSignalConfig && s.messenger != nil
+
+	data := PageData{
+		Page:        "settings",
+		Onboarded:   hasAPIKey && hasSignalConfig,
+		HasSignal:   hasSignal,
+		SidebarData: s.getSidebarData(),
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if err := s.templates.ExecuteTemplate(w, "base", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
+	hasAPIKey := s.config.APIKey != ""
+	signalCfg := db.GetMessengerConfig("signal")
+	hasSignalConfig := signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != ""
+	hasSignal := hasSignalConfig && s.messenger != nil
+
+	data := PageData{
+		Page:        "profile",
+		Onboarded:   hasAPIKey && hasSignalConfig,
+		HasSignal:   hasSignal,
+		SidebarData: s.getSidebarData(),
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	if err := s.templates.ExecuteTemplate(w, "base", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+type ConfigResponse struct {
+	APIKey  string `json:"apiKey"`
+	Model   string `json:"model"`
+	BaseURL string `json:"baseUrl"`
+}
+
+func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
+	response := ConfigResponse{
+		APIKey:  s.config.APIKey,
+		Model:   s.config.Model,
+		BaseURL: s.config.BaseURL,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+type UpdateConfigRequest struct {
+	APIKey  string `json:"apiKey"`
+	Model   string `json:"model"`
+	BaseURL string `json:"baseUrl"`
+}
+
+func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
+	var req UpdateConfigRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.APIKey != "" {
+		s.config.APIKey = req.APIKey
+	}
+	if req.Model != "" {
+		s.config.Model = req.Model
+	}
+	if req.BaseURL != "" {
+		s.config.BaseURL = req.BaseURL
+	}
+
+	if err := db.UpdateConfig(s.config); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ConfigResponse{
+		APIKey:  s.config.APIKey,
+		Model:   s.config.Model,
+		BaseURL: s.config.BaseURL,
+	})
+}
+
+func (s *Server) unlinkSignal(w http.ResponseWriter, r *http.Request) {
+	signalCfg := db.GetMessengerConfig("signal")
+	if signalCfg != nil {
+		signalCfg.Enabled = false
+		signalCfg.Phone = ""
+		if err := db.SaveMessengerConfig(signalCfg); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+type UpdateSignalNumberRequest struct {
+	Number string `json:"number"`
+}
+
+func (s *Server) updateSignalNumber(w http.ResponseWriter, r *http.Request) {
+	var req UpdateSignalNumberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.Number == "" {
+		http.Error(w, "number is required", http.StatusBadRequest)
+		return
+	}
+
+	signalCfg := &db.MessengerConfig{
+		Type:    "signal",
+		Phone:   req.Number,
+		Enabled: true,
+	}
+	if err := db.SaveMessengerConfig(signalCfg); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 

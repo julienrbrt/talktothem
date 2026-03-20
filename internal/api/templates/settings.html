@@ -1,0 +1,264 @@
+{{define "settings-content"}}
+<div class="flex-1 overflow-y-auto p-6">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
+
+        <!-- Signal Connection -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Signal Connection</h2>
+            </div>
+            <div class="p-4">
+                <div id="signal-status" class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div id="signal-dot" class="w-3 h-3 rounded-full bg-gray-500"></div>
+                        <div>
+                            <p id="signal-text" class="font-medium text-gray-800">Checking...</p>
+                            <p id="signal-number" class="text-sm text-gray-500"></p>
+                        </div>
+                    </div>
+                    <button
+                        id="signal-relink-btn"
+                        onclick="showRelinkQR()"
+                        class="hidden bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        Relink Device
+                    </button>
+                </div>
+
+                <!-- QR Code for relinking -->
+                <div id="relink-container" class="hidden mt-4 pt-4 border-t border-gray-200">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-600 mb-4">Scan this QR code with your Signal app to link a new device</p>
+                        <div id="relink-qr" class="flex flex-col items-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Configuration -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">API Configuration</h2>
+            </div>
+            <form id="api-config-form" onsubmit="saveApiConfig(event)" class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                    <input
+                        type="password"
+                        id="config-apiKey"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="sk-...">
+                    <p class="text-xs text-gray-500 mt-1">Your OpenAI (or compatible) API key</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                    <input
+                        type="text"
+                        id="config-model"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., gpt-4o">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Base URL</label>
+                    <input
+                        type="url"
+                        id="config-baseUrl"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://api.openai.com/v1">
+                    <p class="text-xs text-gray-500 mt-1">For OpenAI-compatible APIs (leave empty for default)</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button
+                        type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        Save Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.loadSignalStatus = async function() {
+        const dot = document.getElementById('signal-dot');
+        const text = document.getElementById('signal-text');
+        const number = document.getElementById('signal-number');
+        const relinkBtn = document.getElementById('signal-relink-btn');
+
+        if (!dot || !text || !number || !relinkBtn) return;
+
+        try {
+            const response = await fetch('/api/status');
+            const data = await response.json();
+
+            if (data.connectionStatus === 'connected' && data.messengers.signal?.connected) {
+                dot.classList.remove('bg-gray-500', 'bg-red-500');
+                dot.classList.add('bg-green-500');
+                text.textContent = 'Connected';
+                number.textContent = data.signalNumber || data.messengers.signal?.phone || '';
+                relinkBtn.textContent = 'Relink Device';
+                relinkBtn.classList.remove('hidden');
+            } else {
+                dot.classList.remove('bg-green-500', 'bg-red-500');
+                dot.classList.add('bg-gray-500');
+                text.textContent = 'Disconnected';
+                number.textContent = 'Device not linked or logged out';
+                relinkBtn.textContent = 'Link Device';
+                relinkBtn.classList.remove('hidden');
+            }
+        } catch (e) {
+            console.error('Error loading signal status:', e);
+            dot.classList.remove('bg-green-500', 'bg-gray-500');
+            dot.classList.add('bg-red-500');
+            text.textContent = 'Error checking status';
+            number.textContent = '';
+        }
+    };
+
+    window.loadApiConfig = async function() {
+        const apiKey = document.getElementById('config-apiKey');
+        const model = document.getElementById('config-model');
+        const baseUrl = document.getElementById('config-baseUrl');
+
+        if (!apiKey || !model || !baseUrl) return;
+
+        try {
+            const response = await fetch('/api/config');
+            if (response.ok) {
+                const config = await response.json();
+                apiKey.value = config.apiKey || '';
+                model.value = config.model || '';
+                baseUrl.value = config.baseUrl || '';
+            }
+        } catch (e) {
+            console.error('Error loading config:', e);
+        }
+    };
+
+    window.saveApiConfig = async function(e) {
+        e.preventDefault();
+
+        const data = {
+            apiKey: document.getElementById('config-apiKey').value,
+            model: document.getElementById('config-model').value,
+            baseUrl: document.getElementById('config-baseUrl').value
+        };
+
+        try {
+            const response = await fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                if (window.showToast) window.showToast('Configuration saved!');
+            } else {
+                const text = await response.text();
+                alert('Failed to save: ' + text);
+            }
+        } catch (e) {
+            console.error('Error saving config:', e);
+            alert('Failed to save configuration');
+        }
+    };
+
+    window.showRelinkQR = async function() {
+        const container = document.getElementById('relink-container');
+        const qrDiv = document.getElementById('relink-qr');
+        
+        container.classList.remove('hidden');
+        qrDiv.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>';
+
+        try {
+            // First unlink the current device
+            await fetch('/api/signal/unlink', { method: 'POST' });
+
+            // Get new QR code
+            const response = await fetch('/api/signal/link/start');
+            if (!response.ok) {
+                throw new Error('Failed to get QR code');
+            }
+
+            const data = await response.json();
+
+            qrDiv.innerHTML = `
+                <img src="data:image/png;base64,${data.qrCode}" class="w-64 h-64 border rounded-lg">
+                <p class="text-sm text-gray-500 mt-2">Waiting for scan...</p>
+            `;
+
+            startRelinkPolling();
+        } catch (e) {
+            console.error('Error:', e);
+            qrDiv.innerHTML = `<p class="text-red-500">Failed to generate QR code: ${e.message}</p>`;
+        }
+    };
+
+    let pollingInterval;
+    window.startRelinkPolling = function() {
+        const container = document.getElementById('relink-container');
+        const qrDiv = document.getElementById('relink-qr');
+
+        let attempts = 0;
+        const maxAttempts = 120;
+
+        if (pollingInterval) clearTimeout(pollingInterval);
+
+        const poll = async () => {
+            if (attempts >= maxAttempts) {
+                qrDiv.innerHTML = '<p class="text-red-500">Linking timed out. Please try again.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/signal/link/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.linked) {
+                        qrDiv.innerHTML = `
+                            <div class="text-green-600 flex items-center gap-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span class="font-medium">Device linked!</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-2">Linked to: ${data.number}</p>
+                        `;
+                        
+                        // Update messenger config
+                        await fetch('/api/signal/update-number', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ number: data.number })
+                        });
+
+                        setTimeout(() => {
+                            container.classList.add('hidden');
+                            window.loadSignalStatus();
+                        }, 2000);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Poll error:', e);
+            }
+
+            attempts++;
+            pollingInterval = setTimeout(poll, 1000);
+        };
+
+        poll();
+    };
+
+    window.loadSignalStatus();
+    window.loadApiConfig();
+})();
+</script>
+{{end}}

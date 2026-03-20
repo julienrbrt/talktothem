@@ -434,10 +434,6 @@ func (c *Client) receiveLoop(ctx context.Context) {
 					fmt.Println("[Signal] Parsed nil message, skipping")
 					continue
 				}
-				if msg.IsFromMe {
-					fmt.Printf("[Signal] Message from me to %s, skipping\n", msg.ContactID)
-					continue
-				}
 				if msg.Content == "" && msg.Type != messenger.TypeReaction {
 					fmt.Println("[Signal] Empty content, skipping (likely a receipt)")
 					continue
