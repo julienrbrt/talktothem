@@ -94,10 +94,6 @@
                 background: #25d366;
                 color: white;
             }
-            .messenger-telegram {
-                background: #0088cc;
-                color: white;
-            }
             .messenger-unknown {
                 background: #6b7280;
                 color: white;
@@ -109,10 +105,6 @@
             }
             .bubble-sent-whatsapp {
                 background-color: #25d366;
-                color: white;
-            }
-            .bubble-sent-telegram {
-                background-color: #0088cc;
                 color: white;
             }
             .bubble-sent-unknown {
@@ -347,7 +339,7 @@
                                         <h4 class="font-bold text-gray-900 text-sm">${c.name}</h4>
                                         <p class="text-xs text-gray-400 font-medium">${c.phone}</p>
                                     </div>
-                                    <span class="messenger-badge${c.messenger === "signal" ? " messenger-signal" : c.messenger === "whatsapp" ? " messenger-whatsapp" : c.messenger === "telegram" ? " messenger-telegram" : " messenger-unknown"}">
+                                    <span class="messenger-badge${c.messenger === "signal" ? " messenger-signal" : c.messenger === "whatsapp" ? " messenger-whatsapp" : " messenger-unknown"}">
                                         <span>${c.messenger}</span>
                                     </span>
                                 </div>

@@ -14,7 +14,7 @@ const (
 	TypeSticker  MessageType = "sticker"
 )
 
-var Supported = []string{"signal", "whatsapp", "telegram"}
+var Supported = []string{"signal", "whatsapp"}
 
 type Message struct {
 	ID        string
