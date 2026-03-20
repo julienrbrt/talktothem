@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>TalkToThem — An AI That Talks to Your Friends For You</title>
+        <meta
+            name="description"
+            content="TalkToThem learns your conversation style and can hold conversations on your behalf. Let AI maintain your social connections."
+        />
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&family=Geist+Mono:wght@400;500&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <div class="bg-grid"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <nav>
+            <div class="container">
+                <a href="#" class="logo">
+                    <img src="favicon.svg" alt="TalkToThem" />
+                    <span class="logo-text">TalkToThem<span>.</span></span>
+                </a>
+                <div class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#install">Install</a>
+                    <a
+                        href="https://github.com/julienrbrt/talktothem"
+                        class="btn btn-secondary"
+                        id="nav-stars-count"
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                            />
+                        </svg>
+                        <span id="nav-stars-container">
+                            <span id="nav-stars-number">—</span>
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path
+                                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                                />
+                            </svg>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge fade-in">
+                    <span class="dot"></span>
+                    <span>Open Source</span>
+                    <span>·</span>
+                    <span>Self-Hosted</span>
+                </div>
+                <h1 class="fade-in delay-1">
+                    Let AI talk to<br />
+                    <span class="accent">your friends</span>
+                </h1>
+                <p class="fade-in delay-2">
+                    TalkToThem learns your conversation style by analyzing your
+                    message history, then holds conversations on your behalf.
+                    Maintain your social connections, hands-free.
+                </p>
+                <div class="hero-buttons fade-in delay-3">
+                    <a href="#install" class="btn btn-primary"> Get Started </a>
+                    <a
+                        href="https://github.com/julienrbrt/talktothem"
+                        class="btn btn-secondary"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
+                            />
+                        </svg>
+                        GitHub
+                    </a>
+                </div>
+
+                <div class="preview fade-in delay-4">
+                    <div class="preview-window">
+                        <div class="preview-header">
+                            <div class="preview-dot"></div>
+                            <div class="preview-dot"></div>
+                            <div class="preview-dot"></div>
+                        </div>
+                        <div class="preview-content">
+                            <div class="preview-sidebar">
+                                <div class="preview-sidebar-header">
+                                    <img src="favicon.svg" alt="" />
+                                    <span>TalkToThem</span>
+                                </div>
+                                <div class="preview-contact">
+                                    <div class="preview-avatar">S</div>
+                                    <div class="preview-contact-info">
+                                        <div class="preview-contact-name">
+                                            Sarah
+                                        </div>
+                                        <div class="preview-contact-preview">
+                                            Can't wait to see you!
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="preview-contact active">
+                                    <div class="preview-avatar">M</div>
+                                    <div class="preview-contact-info">
+                                        <div class="preview-contact-name">
+                                            Mom
+                                        </div>
+                                        <div class="preview-contact-preview">
+                                            That sounds wonderful!
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="preview-contact">
+                                    <div class="preview-avatar">J</div>
+                                    <div class="preview-contact-info">
+                                        <div class="preview-contact-name">
+                                            Jake
+                                        </div>
+                                        <div class="preview-contact-preview">
+                                            Haha yeah exactly
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="preview-main">
+                                <div class="preview-chat-header">
+                                    <div class="preview-avatar">M</div>
+                                    <div>
+                                        <div class="preview-chat-name">Mom</div>
+                                        <div class="preview-chat-status">
+                                            Agent Active
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="preview-messages">
+                                    <div class="preview-message incoming">
+                                        Hey sweetie! How are you doing? I
+                                        haven't heard from you in a while.
+                                    </div>
+                                    <div class="preview-message outgoing">
+                                        Hey Mom! I've been doing great, just
+                                        really busy with work lately. How are
+                                        you doing?
+                                    </div>
+                                    <div class="preview-message incoming">
+                                        Oh that's wonderful dear! I'm doing well
+                                        too. Your father and I were thinking of
+                                        visiting next month!
+                                    </div>
+                                    <div class="preview-message outgoing">
+                                        That sounds amazing! I'd love to see you
+                                        both. Let me know what dates work best
+                                        and I'll make sure to clear my schedule.
+                                    </div>
+                                    <div class="preview-typing">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-label">Features</div>
+                    <h2 class="section-title">It really sounds like you</h2>
+                    <p class="section-desc">
+                        Advanced AI learns your unique communication patterns,
+                        inside jokes, and relationship dynamics.
+                    </p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"
+                                />
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                <line x1="12" x2="12" y1="19" y2="22" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Learns Your Voice</h3>
+                        <p class="feature-desc">
+                            Analyzes your conversation history to understand
+                            your unique writing style, slang, and communication
+                            patterns.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <rect
+                                    width="18"
+                                    height="18"
+                                    x="3"
+                                    y="3"
+                                    rx="2"
+                                />
+                                <circle cx="9" cy="9" r="2" />
+                                <path
+                                    d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"
+                                />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Multi-Modal</h3>
+                        <p class="feature-desc">
+                            Sees images and can react to messages with
+                            appropriate, contextual responses that match your
+                            personality.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"
+                                />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Contact-Specific</h3>
+                        <p class="feature-desc">
+                            Understands different relationships and adjusts tone
+                            accordingly—casual with friends, warm with family.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"
+                                />
+                                <path d="m9 12 2 2 4-4" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Privacy First</h3>
+                        <p class="feature-desc">
+                            Self-hosted with local storage. Your conversations
+                            never leave your machine. Use local LLMs for maximum
+                            privacy.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Multi-Messenger</h3>
+                        <p class="feature-desc">
+                            Seamlessly connects to Signal and WhatsApp. More
+                            messengers coming soon.
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                                />
+                                <path d="m3.29 7 8.71 5 8.71-5" />
+                                <path d="M12 22V12" />
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">One-Click Deploy</h3>
+                        <p class="feature-desc">
+                            Deploy instantly to DigitalOcean or run locally with
+                            Docker. Up and running in minutes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="how-it-works" id="install">
+            <div class="container">
+                <div class="section-header">
+                    <div class="section-label">Installation</div>
+                    <h2 class="section-title">Get started in minutes</h2>
+                </div>
+
+                <div class="install-options">
+                    <div class="install-option">
+                        <div class="install-header">
+                            <h3>Docker</h3>
+                            <span class="install-badge">Recommended</span>
+                        </div>
+                        <pre><code>$ git clone https://github.com/julienrbrt/talktothem.git
+$ cd talktothem
+$ docker compose up -d</code>
+                        </pre>
+                        <p class="install-note">
+                            Open
+                            <a href="http://localhost:8080">localhost:8080</a>
+                            to complete setup.
+                        </p>
+                    </div>
+
+                    <div class="install-option">
+                        <div class="install-header">
+                            <h3>Deploy to DigitalOcean</h3>
+                            <span class="install-badge">One-click</span>
+                        </div>
+                        <p class="install-desc">
+                            Deploy instantly to cloud with one click. No
+                            configuration needed.
+                        </p>
+                        <a
+                            href="https://cloud.digitalocean.com/apps/new?repo=https://github.com/julienrbrt/talktothem/tree/main"
+                            class="btn btn-primary"
+                            target="_blank"
+                        >
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"
+                                />
+                            </svg>
+                            Deploy to DigitalOcean
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="container">
+                <a href="#" class="logo">
+                    <img src="favicon.svg" alt="TalkToThem" />
+                    <span class="logo-text">TalkToThem<span>.</span></span>
+                </a>
+                <p class="footer-made-by">
+                    Made by <a href="https://julien.rbrt.fr">julien.rbrt.fr</a>
+                </p>
+            </div>
+        </footer>
+
+        <script>
+            async function fetchStars() {
+                try {
+                    const response = await fetch(
+                        "https://api.github.com/repos/julienrbrt/talktothem",
+                    );
+                    const data = await response.json();
+                    const stars = data.stargazers_count;
+                    const formatted =
+                        stars >= 1000 ? (stars / 1000).toFixed(1) + "k" : stars;
+
+                    const navStarsContainer = document.getElementById(
+                        "nav-stars-container",
+                    );
+                    if (stars > 1) {
+                        document.getElementById(
+                            "nav-stars-number",
+                        ).textContent = formatted;
+                    } else {
+                        navStarsContainer.style.display = "none";
+                    }
+
+                    document.getElementById("stars-number").textContent =
+                        formatted;
+                } catch (e) {
+                    document.getElementById(
+                        "nav-stars-container",
+                    ).style.display = "none";
+                    document.getElementById("stars-number").textContent = "—";
+                }
+            }
+            fetchStars();
+        </script>
+    </body>
+</html>
