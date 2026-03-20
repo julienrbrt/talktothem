@@ -845,6 +845,18 @@ func (s *Server) initiateConversation(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+
+			// Record message in conversation history
+			messageRecord := messenger.Message{
+				ContactID: id,
+				Content:   msg,
+				Type:      messenger.TypeText,
+				Timestamp: time.Now(),
+				IsFromMe:  true,
+			}
+			if err := s.agent.RecordMessage(r.Context(), messageRecord); err != nil {
+				slog.Error("Error recording icebreaker message", "error", err)
+			}
 		}
 	}
 
