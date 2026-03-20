@@ -339,7 +339,9 @@ func (s *Server) getSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"summary": summary})
+	if err := json.NewEncoder(w).Encode(map[string]string{"summary": summary}); err != nil {
+		slog.Error("Error encoding summary", "error", err)
+	}
 }
 
 func (s *Server) getMedia(w http.ResponseWriter, r *http.Request) {
@@ -488,7 +490,9 @@ func (s *Server) getMessengerStatus() (bool, bool) {
 func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
 	data := s.getSidebarData()
 	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "contacts", data)
+	if err := s.templates.ExecuteTemplate(w, "contacts", data); err != nil {
+		slog.Error("Error executing contacts template", "error", err)
+	}
 }
 
 func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
@@ -504,7 +508,9 @@ func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 type CreateContactRequest struct {
@@ -555,7 +561,9 @@ func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "contacts", response)
+	if err := s.templates.ExecuteTemplate(w, "contacts", response); err != nil {
+		slog.Error("Error executing contacts template", "error", err)
+	}
 }
 
 func (s *Server) getContact(w http.ResponseWriter, r *http.Request) {
@@ -568,7 +576,9 @@ func (s *Server) getContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contactToResponse(c))
+	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
+		slog.Error("Error encoding contact response", "error", err)
+	}
 }
 
 type UpdateContactRequest struct {
@@ -607,7 +617,9 @@ func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
 
 	s.broadcastEvent("contact_updated", contactToResponse(c))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contactToResponse(c))
+	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
+		slog.Error("Error encoding contact response", "error", err)
+	}
 }
 
 func (s *Server) deleteContact(w http.ResponseWriter, r *http.Request) {
@@ -632,7 +644,9 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 
 	// Always learn the conversation style first when enabling
 	style, _ := s.agent.LearnStyle(r.Context(), id)
-	s.contacts.SetStyle(id, style)
+	if err := s.contacts.SetStyle(id, style); err != nil {
+		slog.Error("Error setting contact style", "error", err)
+	}
 	c, _ := s.contacts.Get(id)
 
 	// Check for unanswered messages
@@ -647,7 +661,9 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 
 	s.broadcastEvent("contact_enabled", contactToResponse(c))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
@@ -666,7 +682,9 @@ func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
 	c, _ := s.contacts.Get(id)
 	s.broadcastEvent("contact_disabled", contactToResponse(c))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(contactToResponse(c))
+	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
+		slog.Error("Error encoding contact response", "error", err)
+	}
 }
 
 func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
@@ -690,7 +708,9 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "messages", response)
+	if err := s.templates.ExecuteTemplate(w, "messages", response); err != nil {
+		slog.Error("Error executing messages template", "error", err)
+	}
 }
 
 type SendMessageRequest struct {
@@ -738,7 +758,9 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 
 	s.broadcastEvent("message_sent", messageToResponse(msg))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messageToResponse(msg))
+	if err := json.NewEncoder(w).Encode(messageToResponse(msg)); err != nil {
+		slog.Error("Error encoding message response", "error", err)
+	}
 }
 
 func (s *Server) syncConversation(w http.ResponseWriter, r *http.Request) {
@@ -800,7 +822,9 @@ func (s *Server) learnStyle(w http.ResponseWriter, r *http.Request) {
 	c, _ := s.contacts.Get(id)
 	s.broadcastEvent("style_learned", contactToResponse(c))
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"style": style})
+	if err := json.NewEncoder(w).Encode(map[string]string{"style": style}); err != nil {
+		slog.Error("Error encoding style response", "error", err)
+	}
 }
 
 func (s *Server) initiateConversation(w http.ResponseWriter, r *http.Request) {
@@ -823,7 +847,9 @@ func (s *Server) initiateConversation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": msg})
+	if err := json.NewEncoder(w).Encode(map[string]string{"message": msg}); err != nil {
+		slog.Error("Error encoding message", "error", err)
+	}
 }
 
 type ResponseCheckResponse struct {
@@ -842,11 +868,13 @@ func (s *Server) checkResponse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ResponseCheckResponse{
+	if err := json.NewEncoder(w).Encode(ResponseCheckResponse{
 		Needed:     check.Needed,
 		LastSender: check.LastSender,
 		LastAt:     check.LastAt,
-	})
+	}); err != nil {
+		slog.Error("Error encoding check response", "error", err)
+	}
 }
 
 type StatusResponse struct {
@@ -930,7 +958,9 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 type MessengerLinkResponse struct {
@@ -956,7 +986,9 @@ func (s *Server) startMessengerLinking(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 type MessengerLinkStatusResponse struct {
@@ -1012,7 +1044,9 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 func (s *Server) importContactsFromMessengerAsync(ctx context.Context, mt string) {
@@ -1142,7 +1176,9 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	s.ensureConnected(msgr)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
+		slog.Error("Error encoding success response", "error", err)
+	}
 }
 
 type MessengerContact struct {
@@ -1176,7 +1212,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var imported []MessengerContact
 	for _, mc := range messengerContacts {
 		if mc.Phone == "" {
 			continue
@@ -1198,12 +1233,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 		if err := s.contacts.Add(c); err != nil {
 			continue
 		}
-
-		imported = append(imported, MessengerContact{
-			ID:    c.ID,
-			Name:  c.Name,
-			Phone: c.Phone,
-		})
 	}
 
 	// Return updated contact list for HTMX
@@ -1217,7 +1246,9 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	s.templates.ExecuteTemplate(w, "contacts", response)
+	if err := s.templates.ExecuteTemplate(w, "contacts", response); err != nil {
+		slog.Error("Error executing contacts template", "error", err)
+	}
 }
 
 type DashboardData struct {
@@ -1359,7 +1390,9 @@ func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 type UpdateUserProfileRequest struct {
@@ -1390,13 +1423,15 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(UserProfileResponse{
+	if err := json.NewEncoder(w).Encode(UserProfileResponse{
 		Name:          profile.Name,
 		About:         profile.About,
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
 		WritingStyle:  profile.WritingStyle,
-	})
+	}); err != nil {
+		slog.Error("Error encoding user profile response", "error", err)
+	}
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
@@ -1449,7 +1484,9 @@ func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.Error("Error encoding response", "error", err)
+	}
 }
 
 type UpdateConfigRequest struct {
@@ -1496,12 +1533,14 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ConfigResponse{
+	if err := json.NewEncoder(w).Encode(ConfigResponse{
 		APIKey:       s.config.APIKey,
 		Model:        s.config.Model,
 		BaseURL:      s.config.BaseURL,
 		DisableDelay: s.config.DisableDelay,
-	})
+	}); err != nil {
+		slog.Error("Error encoding config response", "error", err)
+	}
 }
 
 func (s *Server) unlinkMessenger(w http.ResponseWriter, r *http.Request) {
@@ -1515,7 +1554,9 @@ func (s *Server) unlinkMessenger(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msgr, ok := s.messengers[mt]; ok && msgr != nil {
-			msgr.Disconnect()
+			if err := msgr.Disconnect(); err != nil {
+				slog.Error("Error disconnecting messenger", "error", err)
+			}
 		}
 	}
 
