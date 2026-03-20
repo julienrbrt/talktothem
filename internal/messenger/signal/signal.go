@@ -389,6 +389,45 @@ func (c *Client) MarkRead(ctx context.Context, contactID string, messageIDs []st
 	return nil
 }
 
+func (c *Client) SendTypingIndicator(ctx context.Context, contactID string, show bool) error {
+	endpoint := fmt.Sprintf("%s/v1/typing-indicator/%s", c.baseURL, url.PathEscape(c.number))
+
+	payload := map[string]any{
+		"recipient": contactID,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
+	}
+
+	var method string
+	if show {
+		method = http.MethodPut
+	} else {
+		method = http.MethodDelete
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send typing indicator: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("send typing indicator failed: %s", string(respBody))
+	}
+
+	return nil
+}
+
 func (c *Client) OnMessage(handler func(messenger.Message)) {
 	c.messageHandler = handler
 }

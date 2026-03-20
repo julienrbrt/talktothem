@@ -220,6 +220,19 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 func (s *Server) listenForAgentResponses() {
 	for resp := range s.agent.Outbox() {
+		// Hide typing indicator before sending
+		cfg := db.GetConfig()
+		if cfg != nil && !cfg.DisableDelay {
+			c, ok := s.contacts.Get(resp.ContactID)
+			if ok {
+				if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
+					if err := msgr.SendTypingIndicator(context.Background(), resp.ContactID, false); err != nil {
+						slog.Error("Error hiding typing indicator", "error", err)
+					}
+				}
+			}
+		}
+
 		// Send the message to the messenger
 		c, ok := s.contacts.Get(resp.ContactID)
 		if ok {
@@ -277,6 +290,19 @@ func (s *Server) listenForAgentResponses() {
 
 func (s *Server) listenForAgentQueued() {
 	for q := range s.agent.Queued() {
+		// Show typing indicator if delay is not disabled
+		cfg := db.GetConfig()
+		if cfg != nil && !cfg.DisableDelay {
+			c, ok := s.contacts.Get(q.ContactID)
+			if ok {
+				if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
+					if err := msgr.SendTypingIndicator(context.Background(), q.ContactID, true); err != nil {
+						slog.Error("Error showing typing indicator", "error", err)
+					}
+				}
+			}
+		}
+
 		// Broadcast the queued response to the UI
 		event := MessageEvent{
 			Type: "queued_response",
@@ -377,9 +403,13 @@ type ContactResponse struct {
 }
 
 func contactToResponse(c contact.Contact) ContactResponse {
+	name := c.Name
+	if name == "" {
+		name = c.Phone
+	}
 	return ContactResponse{
 		ID:           c.ID,
-		Name:         c.Name,
+		Name:         name,
 		Phone:        c.Phone,
 		Messenger:    c.Messenger,
 		Enabled:      c.Enabled,
@@ -420,7 +450,7 @@ type SidebarData struct {
 }
 
 func (s *Server) getSidebarData() SidebarData {
-	contacts := s.contacts.ListActiveConversations()
+	contacts := s.contacts.List()
 
 	var active, inactive []ContactResponse
 	for _, c := range contacts {

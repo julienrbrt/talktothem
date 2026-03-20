@@ -48,6 +48,7 @@ type Messenger interface {
 	SendMessage(ctx context.Context, contactID, content string) error
 	SendReaction(ctx context.Context, contactID, messageID, emoji string) error
 	MarkRead(ctx context.Context, contactID string, messageIDs []string) error
+	SendTypingIndicator(ctx context.Context, contactID string, show bool) error
 
 	OnMessage(handler func(Message))
 	OnReaction(handler func(Message))

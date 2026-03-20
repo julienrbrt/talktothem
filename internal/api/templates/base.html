@@ -22,6 +22,10 @@
             --text-muted: #6b7280;
         }
 
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
@@ -30,6 +34,34 @@
         }
 
         .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Mobile sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                top: 0;
+                width: 100%;
+                max-width: 320px;
+                height: 100%;
+                z-index: 50;
+                transition: left 0.3s ease;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            }
+            .sidebar.open {
+                left: 0;
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 40;
+            }
+            .sidebar-overlay.open {
+                display: block;
+            }
+        }
 
         .messenger-badge {
             display: inline-flex;
@@ -95,11 +127,33 @@
             backdrop-filter: blur(4px);
             background-color: rgba(0,0,0,0.2);
         }
+
+        /* Mobile modal adjustments */
+        @media (max-width: 640px) {
+            .modal-overlay > div {
+                max-height: 90vh;
+                overflow-y: auto;
+                border-radius: 24px;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen" hx-boost="true">
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
     {{if .Onboarded}}
-        <div id="app" class="flex h-screen">
+        <div id="app" class="flex h-screen flex-col md:flex-row">
+            <div id="mobile-header" class="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between flex-shrink-0">
+                <button onclick="openSidebar()" class="p-2 hover:bg-gray-50 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+                <div class="flex items-center gap-2">
+                    <img src="/static/favicon.svg" class="w-6 h-6 rounded-lg" alt="TalkToThem">
+                    <h1 class="text-base font-black text-gray-900 tracking-tight">TalkToThem<span class="text-purple-600">.</span></h1>
+                </div>
+                <div class="w-8"></div>
+            </div>
             {{template "sidebar" .}}
             {{if eq .Page "index"}}
                 {{template "index-content" .}}
@@ -134,7 +188,26 @@
         }
     }
 
+    window.openSidebar = function() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar && overlay) {
+            sidebar.classList.add('open');
+            overlay.classList.add('open');
+        }
+    };
+
+    window.closeSidebar = function() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar && overlay) {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('open');
+        }
+    };
+
     window.openAddContactModal = function() {
+        closeSidebar();
         const modal = document.getElementById('new-contact-modal');
         if (modal) {
             modal.classList.remove('hidden');
