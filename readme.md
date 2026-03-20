@@ -24,7 +24,7 @@ TalkToThem learns your conversation style by analyzing your message history, the
 - **Multi-modal**: Sees images and can react to messages with appropriate responses
 - **Contact-specific**: Understands different relationships and adjusts accordingly
 - **Hands-free conversations**: Let the agent maintain your social connections
-- **Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
+- **Web UI**: Built-in dashboard
 - **Persistent storage**: All conversations and styles stored locally
 
 ## Supported Messengers
@@ -158,7 +158,7 @@ The agent continuously improves as it observes more of your conversations.
 
 - **Backend**: Go with Chi router
 - **Database**: SQLite (via github.com/glebarez/sqlite)
-- **Frontend**: Go templates + HTMX + Tailwind CSS
+- **Frontend**: Go templates + Tailwind CSS
 - **AI**: OpenAI API (or compatible)
 
 ## Disclaimer

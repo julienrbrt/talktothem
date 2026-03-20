@@ -31,5 +31,4 @@ todo.md
 
 # Generated static assets
 internal/api/static/css/style.css
-internal/api/static/js/htmx.min.js
 internal/api/static/bin/

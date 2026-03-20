@@ -16,10 +16,6 @@ var downloads = []struct {
 	dest string
 }{
 	{
-		"https://unpkg.com/htmx.org@2.0.7/dist/htmx.min.js",
-		"static/js/htmx.min.js",
-	},
-	{
 		"https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.17/tailwindcss-linux-x64",
 		"static/bin/tailwindcss",
 	},

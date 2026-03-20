@@ -552,7 +552,7 @@ func (s *Server) createContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return updated contact list for HTMX
+	// Return updated contact list for Go Templates
 	contacts := s.contacts.ListActiveConversations()
 	var response []ContactResponse
 	for _, ct := range contacts {
@@ -1237,7 +1237,7 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Return updated contact list for HTMX
+	// Return updated contact list for Go Templates
 	contacts := s.contacts.ListActiveConversations()
 	var response []ContactResponse
 	for _, ct := range contacts {
@@ -1308,7 +1308,7 @@ func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 			ContactID: c.ID,
 			Name:      c.Name,
 			LastAt:    lastAt,
-			Messenger:  c.Messenger,
+			Messenger: c.Messenger,
 		})
 	}
 
