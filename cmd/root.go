@@ -100,47 +100,55 @@ func runServe(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create contact manager: %w", err)
 	}
 
-	var msgr messenger.Messenger
 	signalAPIURL := os.Getenv("SIGNAL_API_URL")
 	if signalAPIURL == "" {
 		signalAPIURL = "http://localhost:8080"
 	}
 
-	// Check if Signal device is already linked and sync to DB
-	signalClient := signalcli.NewWithoutNumber(signalAPIURL)
-	linked, linkedNumber, err := signalClient.IsLinked(cmd.Context())
-	if err != nil {
-		slog.Warn("failed to check Signal link status", "error", err)
-	}
-	if linked && linkedNumber != "" {
-		// Ensure DB is in sync with linked device
-		signalCfg := db.GetMessengerConfig(signalClient.Name())
-	if signalCfg == nil || signalCfg.Phone != linkedNumber {
-			slog.Info("Syncing Signal configuration", "linkedNumber", linkedNumber)
-			signalCfg = &db.MessengerConfig{
-				Type:    "signal",
-				Phone:   linkedNumber,
-				Enabled: true,
-			}
-			if err := db.SaveMessengerConfig(signalCfg); err != nil {
-				slog.Warn("failed to save Signal config", "error", err)
+	msgrs := make(map[string]messenger.Messenger)
+	
+	// Add Signal
+	signalMsgr := signalcli.NewWithoutNumber(signalAPIURL)
+	msgrs[signalMsgr.Name()] = signalMsgr
+
+	for name, m := range msgrs {
+		// Check if messenger device is already linked and sync to DB
+		linked, linkedNumber, err := m.IsLinked(cmd.Context())
+		if err != nil {
+			slog.Warn("failed to check messenger link status", "messenger", name, "error", err)
+		}
+		if linked && linkedNumber != "" {
+			// Ensure DB is in sync with linked device
+			cfg := db.GetMessengerConfig(name)
+			if cfg == nil || cfg.Phone != linkedNumber {
+				slog.Info("Syncing messenger configuration", "messenger", name, "linkedNumber", linkedNumber)
+				cfg = &db.MessengerConfig{
+					Type:    name,
+					Phone:   linkedNumber,
+					Enabled: true,
+				}
+				if err := db.SaveMessengerConfig(cfg); err != nil {
+					slog.Warn("failed to save messenger config", "messenger", name, "error", err)
+				}
 			}
 		}
-	}
 
-	signalCfg := db.GetMessengerConfig(signalClient.Name())
-	if signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" {
-		msgr = signalcli.New(signalCfg.Phone, signalAPIURL)
-		slog.Info("Connecting to messenger...")
-		if err := msgr.Connect(ctx); err != nil {
-			slog.Warn("failed to connect to the messenger", "error", err)
-			slog.Info("Continuing without a messenger connection...")
-			msgr = nil
-		} else {
-			defer func() {
-				slog.Info("Shutting down messenger...")
-				_ = msgr.Disconnect()
-			}()
+		cfg := db.GetMessengerConfig(name)
+		if cfg != nil && cfg.Enabled && cfg.Phone != "" {
+			m.SetNumber(cfg.Phone)
+			slog.Info("Connecting to messenger...", "messenger", name)
+			if err := m.Connect(ctx); err != nil {
+				slog.Warn("failed to connect to the messenger", "messenger", name, "error", err)
+				slog.Info("Continuing without a messenger connection...", "messenger", name)
+			} else {
+				// Capture the variable for defer
+				mToClose := m
+				nameToClose := name
+				defer func() {
+					slog.Info("Shutting down messenger...", "messenger", nameToClose)
+					_ = mToClose.Disconnect()
+				}()
+			}
 		}
 	}
 
@@ -151,11 +159,11 @@ func runServe(cmd *cobra.Command, args []string) error {
 		go ag.Run(ctx, inbox)
 	}
 
-	server := api.NewServer(addr, ag, contacts, msgr, cfg, nil, signalAPIURL)
+	server := api.NewServer(addr, ag, contacts, msgrs, cfg, nil)
 
 	// This needs to be after server is created so we can broadcast
-	if msgr != nil {
-		msgr.OnMessage(func(msg messenger.Message) {
+	for _, m := range msgrs {
+		m.OnMessage(func(msg messenger.Message) {
 			slog.Info("Received message", "contactID", msg.ContactID, "content", msg.Content)
 			server.BroadcastMessage(msg)
 			if err := ag.RecordMessage(context.Background(), msg); err != nil {
@@ -169,7 +177,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 				}
 			}
 		})
-		msgr.StartReceiving(ctx)
+		m.StartReceiving(ctx)
 	}
 
 	slog.Info("Starting server", "addr", addr)

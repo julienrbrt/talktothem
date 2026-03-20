@@ -95,7 +95,7 @@ async function showQRCode() {
     const container = document.getElementById('qr-container');
 
     try {
-        const response = await fetch('/api/signal/link/start');
+        const response = await fetch('/api/messenger/signal/link/start');
         if (!response.ok) {
             alert('Failed to get QR code');
             return;
@@ -136,7 +136,7 @@ function startLinkPolling() {
         }
 
         try {
-            const response = await fetch('/api/signal/link/status');
+            const response = await fetch('/api/messenger/signal/link/status');
             if (response.ok) {
                 const data = await response.json();
                 if (data.linked) {
@@ -390,7 +390,7 @@ async function createContact(e) {
 
 async function importFromSignal() {
     try {
-        const response = await fetch('/api/contacts/import', { method: 'POST' });
+        const response = await fetch('/api/messenger/signal/contacts/import', { method: 'POST' });
         if (response.ok) {
             const html = await response.text();
             document.getElementById('contact-list').innerHTML = html;

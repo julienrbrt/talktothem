@@ -37,6 +37,10 @@ type Messenger interface {
 	Disconnect() error
 	IsConnected() bool
 
+	StartLinking(ctx context.Context, deviceName string) ([]byte, error)
+	IsLinked(ctx context.Context) (bool, string, error)
+	SetNumber(number string)
+
 	GetContacts(ctx context.Context) ([]Contact, error)
 	GetConversation(ctx context.Context, contactID string, limit int) ([]Message, error)
 	SendMessage(ctx context.Context, contactID, content string) error

@@ -179,10 +179,10 @@
 
         try {
             // First unlink the current device
-            await fetch('/api/signal/unlink', { method: 'POST' });
+            await fetch('/api/messenger/signal/unlink', { method: 'POST' });
 
             // Get new QR code
-            const response = await fetch('/api/signal/link/start');
+            const response = await fetch('/api/messenger/signal/link/start');
             if (!response.ok) {
                 throw new Error('Failed to get QR code');
             }
@@ -218,7 +218,7 @@
             }
 
             try {
-                const response = await fetch('/api/signal/link/status');
+                const response = await fetch('/api/messenger/signal/link/status');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.linked) {
@@ -233,7 +233,7 @@
                         `;
                         
                         // Update messenger config
-                        await fetch('/api/signal/update-number', {
+                        await fetch('/api/messenger/signal/update-number', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ number: data.number })
