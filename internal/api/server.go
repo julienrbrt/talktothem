@@ -18,6 +18,7 @@ import (
 	"github.com/julienrbrt/talktothem/internal/contact"
 	"github.com/julienrbrt/talktothem/internal/conversation"
 	"github.com/julienrbrt/talktothem/internal/db"
+	"github.com/julienrbrt/talktothem/internal/llm"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
@@ -28,15 +29,16 @@ var upgrader = websocket.Upgrader{
 }
 
 type Server struct {
-	server       *http.Server
-	router       *chi.Mux
-	agent        *agent.Agent
-	contacts     *contact.Manager
-	messengers   map[string]messenger.Messenger
-	config       *db.Config
-	hub          *Hub
-	templates    *template.Template
-	assets       fs.FS
+	ctx        context.Context
+	server     *http.Server
+	router     *chi.Mux
+	agent      *agent.Agent
+	contacts   *contact.Manager
+	messengers map[string]messenger.Messenger
+	config     *db.Config
+	hub        *Hub
+	templates  *template.Template
+	assets     fs.FS
 }
 
 type Hub struct {
@@ -82,7 +84,7 @@ type MessageEvent struct {
 //go:embed templates/*.html templates/partials/*.html
 var templatesFS embed.FS
 
-func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[string]messenger.Messenger, cfg *db.Config, assets fs.FS) *Server {
+func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[string]messenger.Messenger, cfg *db.Config, assets fs.FS) *Server {
 	r := chi.NewRouter()
 
 	tmpl := template.Must(template.ParseFS(templatesFS,
@@ -94,14 +96,15 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[stri
 	))
 
 	s := &Server{
-		router:       r,
-		agent:        ag,
-		contacts:     cm,
-		messengers:   msgrs,
-		config:       cfg,
-		hub:          NewHub(),
-		templates:    tmpl,
-		assets:       assets,
+		ctx:        ctx,
+		router:     r,
+		agent:      ag,
+		contacts:   cm,
+		messengers: msgrs,
+		config:     cfg,
+		hub:        NewHub(),
+		templates:  tmpl,
+		assets:     assets,
 	}
 
 	r.Use(middleware.Logger)
@@ -343,6 +346,23 @@ func (s *Server) getSidebarData() SidebarData {
 		Active:   active,
 		Inactive: inactive,
 	}
+}
+
+func (s *Server) getMessengerStatus() (bool, bool) {
+	hasMessengerConnected := false
+	hasMessengerEnabled := false
+
+	for _, name := range messenger.Supported {
+		msgr := s.messengers[name]
+		messengerCfg := db.GetMessengerConfig(name)
+		if messengerCfg != nil && messengerCfg.Enabled {
+			hasMessengerEnabled = true
+			if msgr != nil && msgr.IsConnected() {
+				hasMessengerConnected = true
+			}
+		}
+	}
+	return hasMessengerConnected, hasMessengerEnabled
 }
 
 func (s *Server) listContacts(w http.ResponseWriter, r *http.Request) {
@@ -691,7 +711,7 @@ type MessengerStatus struct {
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	
+
 	contacts := s.contacts.List()
 	var connected int
 	for _, c := range contacts {
@@ -702,11 +722,11 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 
 	messengers := make(map[string]MessengerStatus)
 	hasMessengerConfig := false
-	hasMessengerLinked := false
+	hasAnyMessengerLinked := false
+	hasMessengerConnected := false
 
 	// Gather all known messenger types
-	allTypes := []string{"signal", "whatsapp", "telegram"}
-	for _, t := range allTypes {
+	for _, t := range messenger.Supported {
 		cfg := db.GetMessengerConfig(t)
 		msgr := s.messengers[t]
 
@@ -718,28 +738,39 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		isLinked := false
 		if msgr != nil {
 			linked, number, err := msgr.IsLinked(r.Context())
 			if err == nil && linked {
-				status.Connected = true
-				hasMessengerLinked = true
+				isLinked = true
+				hasAnyMessengerLinked = true
 				if number != "" {
 					status.Phone = number
 				}
 			}
+			status.Connected = msgr.IsConnected()
 		}
 
-		if status.Enabled || status.Connected || msgr != nil {
+		if status.Enabled || status.Connected || isLinked {
 			messengers[t] = status
+			if status.Connected {
+				hasMessengerConnected = true
+			}
 		}
 	}
 
+	connectionStatus := "disconnected"
+	if hasMessengerConnected {
+		connectionStatus = "connected"
+	}
+
 	response := StatusResponse{
-		Onboarded:       hasAPIKey && hasMessengerConfig,
-		HasMessenger:    hasMessengerLinked,
-		HasAPIKey:       hasAPIKey,
-		ConnectedCount:  connected,
-		Messengers:      messengers,
+		Onboarded:        hasAPIKey && hasMessengerConfig,
+		HasMessenger:     hasAnyMessengerLinked,
+		HasAPIKey:        hasAPIKey,
+		ConnectedCount:   connected,
+		ConnectionStatus: connectionStatus,
+		Messengers:       messengers,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -777,6 +808,17 @@ type MessengerLinkStatusResponse struct {
 	Number string `json:"number,omitempty"`
 }
 
+func (s *Server) ensureConnected(msgr messenger.Messenger) {
+	if msgr != nil && !msgr.IsConnected() {
+		slog.Info("Connecting to messenger", "name", msgr.Name())
+		if err := msgr.Connect(s.ctx); err != nil {
+			slog.Warn("Failed to connect to messenger", "name", msgr.Name(), "error", err)
+			return
+		}
+		msgr.StartReceiving(s.ctx)
+	}
+}
+
 func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) {
 	mt := chi.URLParam(r, "type")
 	msgr, ok := s.messengers[mt]
@@ -789,6 +831,20 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if linked {
+		cfg := db.GetMessengerConfig(mt)
+		if cfg == nil {
+			cfg = &db.MessengerConfig{
+				Type: mt,
+			}
+		}
+		if !cfg.Enabled {
+			cfg.Enabled = true
+			_ = db.SaveMessengerConfig(cfg)
+		}
+		s.ensureConnected(msgr)
 	}
 
 	response := MessengerLinkStatusResponse{
@@ -859,15 +915,31 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save messenger config with number from linked device
-	messengerCfg := &db.MessengerConfig{
-		Type:    msgr.Name(),
-		Enabled: true,
+	// Update agent LLM client
+	if s.agent != nil {
+		llmClient := llm.NewClient(llm.Config{
+			APIKey:  s.config.APIKey,
+			BaseURL: s.config.BaseURL,
+			Model:   s.config.Model,
+		})
+		s.agent.SetLLM(llmClient)
+		s.agent.SetVision(llmClient)
 	}
+
+	// Save messenger config with number from linked device
+	messengerCfg := db.GetMessengerConfig(msgr.Name())
+	if messengerCfg == nil {
+		messengerCfg = &db.MessengerConfig{
+			Type: msgr.Name(),
+		}
+	}
+	messengerCfg.Enabled = true
 	if err := db.SaveMessengerConfig(messengerCfg); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	s.ensureConnected(msgr)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"success": true})
@@ -959,18 +1031,7 @@ type PageData struct {
 
 func (s *Server) indexPage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	hasMessenger := false
-	hasMessengerConfig := false
-
-	for name, msgr := range s.messengers {
-		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled {
-			hasMessengerConfig = true
-			if msgr != nil {
-				hasMessenger = true
-			}
-		}
-	}
+	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
 	data := PageData{
 		Page:         "index",
@@ -1010,18 +1071,7 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	hasAPIKey := s.config.APIKey != ""
-	hasMessenger := false
-	hasMessengerConfig := false
-
-	for name, msgr := range s.messengers {
-		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled {
-			hasMessengerConfig = true
-			if msgr != nil {
-				hasMessenger = true
-			}
-		}
-	}
+	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
 	data := PageData{
 		Page:         "conversation",
@@ -1095,18 +1145,7 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	hasMessenger := false
-	hasMessengerConfig := false
-
-	for name, msgr := range s.messengers {
-		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled {
-			hasMessengerConfig = true
-			if msgr != nil {
-				hasMessenger = true
-			}
-		}
-	}
+	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
 	data := PageData{
 		Page:         "settings",
@@ -1123,18 +1162,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
 	hasAPIKey := s.config.APIKey != ""
-	hasMessenger := false
-	hasMessengerConfig := false
-
-	for name, msgr := range s.messengers {
-		messengerCfg := db.GetMessengerConfig(name)
-		if messengerCfg != nil && messengerCfg.Enabled {
-			hasMessengerConfig = true
-			if msgr != nil {
-				hasMessenger = true
-			}
-		}
-	}
+	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
 	data := PageData{
 		Page:         "profile",
@@ -1194,6 +1222,17 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update agent LLM client
+	if s.agent != nil {
+		llmClient := llm.NewClient(llm.Config{
+			APIKey:  s.config.APIKey,
+			BaseURL: s.config.BaseURL,
+			Model:   s.config.Model,
+		})
+		s.agent.SetLLM(llmClient)
+		s.agent.SetVision(llmClient)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ConfigResponse{
 		APIKey:  s.config.APIKey,
@@ -1210,6 +1249,10 @@ func (s *Server) unlinkMessenger(w http.ResponseWriter, r *http.Request) {
 		if err := db.SaveMessengerConfig(messengerCfg); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if msgr, ok := s.messengers[mt]; ok && msgr != nil {
+			msgr.Disconnect()
 		}
 	}
 

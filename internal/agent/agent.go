@@ -265,6 +265,24 @@ func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error 
 	return h.Add(msg)
 }
 
+func (a *Agent) SetLLM(llm LLM) {
+	a.historyMu.Lock()
+	defer a.historyMu.Unlock()
+	a.llm = llm
+}
+
+func (a *Agent) SetVision(v Vision) {
+	a.historyMu.Lock()
+	defer a.historyMu.Unlock()
+	a.vision = v
+}
+
+func (a *Agent) HasLLM() bool {
+	a.historyMu.RLock()
+	defer a.historyMu.RUnlock()
+	return a.llm != nil
+}
+
 func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 	slog.Info("Agent Run loop started")
 	for {
@@ -277,6 +295,12 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				slog.Info("Agent Inbox closed, stopping")
 				return
 			}
+			
+			if !a.HasLLM() {
+				slog.Info("Agent No LLM configured, skipping")
+				continue
+			}
+
 			slog.Info("Agent Received message", "contactID", msg.ContactID, "content", msg.Content)
 			if msg.IsFromMe {
 				slog.Info("Agent Message is from me, skipping generation")

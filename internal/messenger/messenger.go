@@ -13,6 +13,8 @@ const (
 	TypeReaction MessageType = "reaction"
 )
 
+var Supported = []string{"signal", "whatsapp", "telegram"}
+
 type Message struct {
 	ID        string
 	ContactID string

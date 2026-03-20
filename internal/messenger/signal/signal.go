@@ -37,7 +37,7 @@ func (c *Client) Name() string {
 
 func New(number, baseURL string) *Client {
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8081"
 	}
 	wsURL := strings.Replace(baseURL, "http://", "ws://", 1)
 	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
@@ -51,7 +51,7 @@ func New(number, baseURL string) *Client {
 
 func NewWithoutNumber(baseURL string) *Client {
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8081"
 	}
 	wsURL := strings.Replace(baseURL, "http://", "ws://", 1)
 	wsURL = strings.Replace(wsURL, "https://", "wss://", 1)
@@ -184,6 +184,9 @@ func (c *Client) IsLinked(ctx context.Context) (bool, string, error) {
 	}
 
 	if len(accounts) > 0 {
+		c.mu.Lock()
+		c.number = accounts[0]
+		c.mu.Unlock()
 		return true, accounts[0], nil
 	}
 
@@ -363,12 +366,29 @@ func (c *Client) receiveLoop(ctx context.Context) {
 			return
 		}
 
-		endpoint := fmt.Sprintf("%s/v1/receive/%s", c.wsURL, url.PathEscape(c.number))
+		c.mu.RLock()
+		number := c.number
+		c.mu.RUnlock()
+
+		if number == "" {
+			slog.Debug("Signal messenger has no number set, checking link status...")
+			linked, _, err := c.IsLinked(ctx)
+			if err != nil || !linked {
+				time.Sleep(10 * time.Second)
+			}
+			continue
+		}
+
+		endpoint := fmt.Sprintf("%s/v1/receive/%s", c.wsURL, url.PathEscape(number))
 		slog.Info("Connecting to Signal WebSocket", "endpoint", endpoint)
 
-		conn, _, err := dialer.DialContext(ctx, endpoint, nil)
+		conn, resp, err := dialer.DialContext(ctx, endpoint, nil)
 		if err != nil {
-			slog.Warn("Signal WebSocket dial error, retrying in 5s...", "error", err)
+			status := "unknown"
+			if resp != nil {
+				status = resp.Status
+			}
+			slog.Warn("Signal WebSocket dial error, retrying in 5s...", "error", err, "status", status)
 			time.Sleep(5 * time.Second)
 			continue
 		}

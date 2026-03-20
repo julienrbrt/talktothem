@@ -26,7 +26,7 @@ type UserProfile struct {
 
 type MessengerConfig struct {
 	ID       uint   `gorm:"primaryKey"`
-	Type     string // "signal", "whatsapp", "telegram", etc.
+	Type     string `gorm:"uniqueIndex"` // "signal", "whatsapp", "telegram", etc.
 	APIToken string
 	Enabled  bool `gorm:"default:false"`
 }
@@ -102,7 +102,7 @@ func GetOrCreateConfig() *Config {
 
 func GetMessengerConfig(messengerType string) *MessengerConfig {
 	var config MessengerConfig
-	result := DB.Where("type = ?", messengerType).First(&config)
+	result := DB.Where("type = ?", messengerType).Order("enabled DESC, id DESC").First(&config)
 	if result.Error != nil {
 		return nil
 	}

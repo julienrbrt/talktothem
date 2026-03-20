@@ -144,6 +144,7 @@ function startLinkPolling() {
                     successEl.classList.remove('hidden');
                     linkedNumber.textContent = data.number;
                     configForm.classList.remove('hidden');
+                    updateConnectionStatus();
                     return;
                 }
             }
@@ -603,7 +604,46 @@ document.addEventListener('DOMContentLoaded', () => {
     updateConnectionStatus();
     // Poll connection status every 30 seconds
     setInterval(updateConnectionStatus, 30000);
+
+    // If on onboarding screen, check link status
+    if (document.getElementById('onboarding-screen')) {
+        checkInitialStatus();
+    }
 });
+
+async function checkInitialStatus() {
+    try {
+        const response = await fetch('/api/messenger/signal/link/status');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.linked) {
+                document.getElementById('start-link-btn')?.classList.add('hidden');
+                document.getElementById('link-success').classList.remove('hidden');
+                document.getElementById('linked-number').textContent = data.number;
+                document.getElementById('step-config').classList.remove('hidden');
+                
+                // Also load existing config if any
+                loadExistingConfig();
+            }
+        }
+    } catch (e) {
+        console.error('Error checking initial status:', e);
+    }
+}
+
+async function loadExistingConfig() {
+    try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+            const config = await response.json();
+            if (config.apiKey) document.getElementById('apiKey').value = config.apiKey;
+            if (config.model) document.getElementById('model').value = config.model;
+            if (config.baseUrl) document.getElementById('baseUrl').value = config.baseUrl;
+        }
+    } catch (e) {
+        console.error('Error loading existing config:', e);
+    }
+}
 
 </script>
 {{end}}

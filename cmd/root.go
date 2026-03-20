@@ -102,7 +102,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 	signalAPIURL := os.Getenv("SIGNAL_API_URL")
 	if signalAPIURL == "" {
-		signalAPIURL = "http://localhost:8080"
+		signalAPIURL = "http://localhost:8081"
 	}
 
 	msgrs := make(map[string]messenger.Messenger)
@@ -126,9 +126,13 @@ func runServe(cmd *cobra.Command, args []string) error {
 					Type:    name,
 					Enabled: true,
 				}
-				if err := db.SaveMessengerConfig(cfg); err != nil {
-					slog.Warn("failed to save messenger config", "messenger", name, "error", err)
-				}
+			} else if !cfg.Enabled {
+				slog.Info("Enabling linked messenger", "messenger", name)
+				cfg.Enabled = true
+			}
+			
+			if err := db.SaveMessengerConfig(cfg); err != nil {
+				slog.Warn("failed to save messenger config", "messenger", name, "error", err)
 			}
 		}
 
@@ -157,7 +161,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		go ag.Run(ctx, inbox)
 	}
 
-	server := api.NewServer(addr, ag, contacts, msgrs, cfg, nil)
+	server := api.NewServer(ctx, addr, ag, contacts, msgrs, cfg, nil)
 
 	// This needs to be after server is created so we can broadcast
 	for _, m := range msgrs {
