@@ -11,13 +11,10 @@
         </header>
 
         <div class="space-y-8">
-            <!-- Signal Connection -->
             <section class="bento-card p-8 bg-white">
                 <div class="flex items-center justify-between mb-8">
                     <div>
-                        <h3
-                            class="text-xl font-black text-gray-900 tracking-tight"
-                        >
+                        <h3 class="text-xl font-black text-gray-900 tracking-tight">
                             Signal Protocol
                         </h3>
                         <p class="text-sm text-gray-400 font-medium">
@@ -25,99 +22,82 @@
                         </p>
                     </div>
                     <div id="signal-status" class="flex items-center gap-3">
-                        <div
-                            id="signal-dot"
-                            class="w-2.5 h-2.5 rounded-full bg-gray-300"
-                        ></div>
-                        <span
-                            id="signal-text"
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest"
-                            >Idle</span
-                        >
+                        <div id="signal-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
+                        <span id="signal-text" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Idle</span>
                     </div>
                 </div>
 
-                <div
-                    class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100"
-                >
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <div class="flex items-center gap-4">
-                        <div
-                            class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm"
-                        >
-                            <svg
-                                class="w-6 h-6 text-[#3a76f0]"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    d="M12 2C6.477 2 2 6.477 2 12c0 1.891.526 3.658 1.438 5.161L2.121 21.879l4.718-1.317C8.342 21.474 10.109 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.636 0-3.167-.442-4.484-1.213l-.321-.188-2.828.789.789-2.828-.188-.321C4.442 15.167 4 13.636 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"
-                                ></path>
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm">
+                            <svg class="w-6 h-6 text-[#3a76f0]" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.526 3.658 1.438 5.161L2.121 21.879l4.718-1.317C8.342 21.474 10.109 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.636 0-3.167-.442-4.484-1.213l-.321-.188-2.828.789.789-2.828-.188-.321C4.442 15.167 4 13.636 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"></path>
                             </svg>
                         </div>
                         <div>
-                            <p
-                                id="signal-number"
-                                class="text-sm font-bold text-gray-900 leading-none"
-                            >
+                            <p id="signal-number" class="text-sm font-bold text-gray-900 leading-none">
                                 Not Linked
                             </p>
-                            <p
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1"
-                            >
-                                Status:
-                                <span id="signal-status-label">Offline</span>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1">
+                                Status: <span id="signal-status-label">Offline</span>
                             </p>
                         </div>
                     </div>
                     <button
                         id="signal-relink-btn"
                         onclick="showRelinkQR()"
-                        class="hidden bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-                    >
+                        class="hidden bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">
                         Link Device
                     </button>
                 </div>
 
-                <!-- QR Code container -->
-                <div
-                    id="relink-container"
-                    class="hidden mt-8 pt-8 border-t border-gray-50"
-                >
-                    <div
-                        class="text-center bg-gray-50 p-8 rounded-[32px] border border-dashed border-gray-200"
-                    >
-                        <p
-                            class="text-xs font-bold text-gray-500 mb-6 uppercase tracking-widest"
-                        >
+                <div id="relink-container" class="hidden mt-8 pt-8 border-t border-gray-50">
+                    <div class="text-center bg-gray-50 p-8 rounded-[32px] border border-dashed border-gray-200">
+                        <p class="text-xs font-bold text-gray-500 mb-6 uppercase tracking-widest">
                             Scan to synchronize
                         </p>
                         <div id="relink-qr" class="flex flex-col items-center">
-                            <div
-                                class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"
-                            ></div>
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sync Contacts -->
-                <div class="mt-8 pt-8 border-t border-gray-50">
-                    <div class="flex items-center justify-between">
+            </section>
+
+            <section class="bento-card p-8 bg-white">
+                <div class="mb-8">
+                    <h3 class="text-xl font-black text-gray-900 tracking-tight">
+                        Contacts Sync
+                    </h3>
+                    <p class="text-sm text-gray-400 font-medium">
+                        Synchronize contacts from connected messenger protocols.
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm">
+                            <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
                         <div>
-                            <p class="text-sm font-bold text-gray-900">
-                                Contacts
+                            <p class="text-sm font-bold text-gray-900 leading-none">
+                                All Protocols
+                            </p>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1">
+                                Import from messengers
                             </p>
                         </div>
-                        <button
-                            onclick="syncContacts()"
-                            class="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
-                        >
-                            Re-sync
-                        </button>
                     </div>
+                    <button
+                        onclick="syncContacts()"
+                        class="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">
+                        Re-sync
+                    </button>
                 </div>
             </section>
 
-            <!-- API Configuration -->
             <section class="bento-card p-8 bg-white">
                 <div class="mb-8">
                     <h3 class="text-xl font-black text-gray-900 tracking-tight">
@@ -128,103 +108,56 @@
                     </p>
                 </div>
 
-                <form
-                    id="api-config-form"
-                    onsubmit="saveApiConfig(event)"
-                    class="space-y-6"
-                >
+                <form id="api-config-form" onsubmit="saveApiConfig(event)" class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                                >Access Token</label
-                            >
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Access Token</label>
                             <input
                                 type="password"
                                 id="config-apiKey"
                                 class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
-                                placeholder="sk-..."
-                            />
+                                placeholder="sk-..." />
                         </div>
                         <div class="space-y-2">
-                            <label
-                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                                >Model ID</label
-                            >
+                            <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Model ID</label>
                             <input
                                 type="text"
                                 id="config-model"
                                 class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
-                                placeholder="gpt-4o"
-                            />
+                                placeholder="gpt-4o" />
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <label
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                            >Endpoint URL</label
-                        >
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Endpoint URL</label>
                         <input
                             type="url"
                             id="config-baseUrl"
                             class="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
-                            placeholder="https://api.openai.com/v1"
-                        />
+                            placeholder="https://api.openai.com/v1" />
                     </div>
 
-                    <div
-                        class="flex items-center justify-between p-4 bg-purple-50/50 rounded-2xl border border-purple-100/50"
-                    >
+                    <div class="flex items-center justify-between p-4 bg-purple-50/50 rounded-2xl border border-purple-100/50">
                         <div class="flex items-center gap-4">
-                            <div
-                                class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-purple-100"
-                            >
-                                <svg
-                                    class="w-5 h-5 text-purple-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2.5"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    ></path>
-                                </svg>
+                            <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-purple-100">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-gray-900">
-                                    Simulated Latency
-                                </p>
-                                <p
-                                    class="text-[10px] font-black text-purple-400 uppercase tracking-tighter"
-                                >
-                                    Human typing simulation
-                                </p>
+                                <p class="text-sm font-bold text-gray-900">Simulated Latency</p>
+                                <p class="text-[10px] font-black text-purple-400 uppercase tracking-tighter">Human typing simulation</p>
                             </div>
                         </div>
-                        <div
-                            class="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full shadow-inner"
-                        >
-                            <input
-                                type="checkbox"
-                                id="config-disableDelay"
-                                class="sr-only peer"
-                            />
-                            <label
-                                for="config-disableDelay"
-                                class="absolute top-0 left-0 w-12 h-6 bg-gray-200 rounded-full cursor-pointer peer-checked:bg-purple-600 transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6"
-                            ></label>
+                        <div class="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full shadow-inner">
+                            <input type="checkbox" id="config-disableDelay" class="sr-only peer" />
+                            <label for="config-disableDelay" class="absolute top-0 left-0 w-12 h-6 bg-gray-200 rounded-full cursor-pointer peer-checked:bg-purple-600 transition-colors after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-6"></label>
                         </div>
                     </div>
 
                     <div class="flex justify-end pt-4">
                         <button
                             type="submit"
-                            class="bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-4 px-10 rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
-                        >
+                            class="bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-4 px-10 rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200">
                             Apply Changes
                         </button>
                     </div>
@@ -318,21 +251,53 @@
         window.syncContacts = async function () {
             try {
                 showToast("Syncing contacts...");
-                const response = await fetch(
-                    "/api/messenger/signal/contacts/import",
-                    { method: "POST" },
-                );
 
-                if (response.ok) {
-                    showToast("Contacts synchronized");
+                const statusResponse = await fetch("/api/status");
+                const status = await statusResponse.json();
+
+                if (!status.messengers || Object.keys(status.messengers).length === 0) {
+                    showToast("No connected messengers");
+                    return;
+                }
+
+                let syncedCount = 0;
+                let failedCount = 0;
+
+                for (const [messengerType, messengerStatus] of Object.entries(status.messengers)) {
+                    if (messengerStatus.connected || messengerStatus.phone) {
+                        try {
+                            const response = await fetch(
+                                `/api/messenger/${messengerType}/contacts/import`,
+                                { method: "POST" },
+                            );
+
+                            if (response.ok) {
+                                syncedCount++;
+                            } else {
+                                failedCount++;
+                            }
+                        } catch (e) {
+                            console.error(`Failed to sync ${messengerType}:`, e);
+                            failedCount++;
+                        }
+                    }
+                }
+
+                if (syncedCount > 0) {
+                    const msg = failedCount > 0
+                        ? `Synced ${syncedCount} messenger(s), ${failedCount} failed`
+                        : `Contacts synchronized from ${syncedCount} messenger(s)`;
+                    showToast(msg);
+
                     const contactListResponse = await fetch("/api/contacts");
                     if (contactListResponse.ok) {
-                        document.getElementById("contact-list").innerHTML =
-                            await contactListResponse.text();
+                        const contactList = document.getElementById("contact-list");
+                        if (contactList) {
+                            contactList.innerHTML = await contactListResponse.text();
+                        }
                     }
                 } else {
-                    const text = await response.text();
-                    showToast("Sync failed: " + text);
+                    showToast("No contacts synchronized");
                 }
             } catch (e) {
                 console.error(e);
