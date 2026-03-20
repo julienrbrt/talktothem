@@ -3,10 +3,12 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	sig "os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/julienrbrt/talktothem/internal/agent"
 	"github.com/julienrbrt/talktothem/internal/api"
@@ -15,6 +17,7 @@ import (
 	"github.com/julienrbrt/talktothem/internal/llm"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 	signalcli "github.com/julienrbrt/talktothem/internal/messenger/signal"
+	"github.com/lmittmann/tint"
 	"github.com/spf13/cobra"
 )
 
@@ -49,6 +52,13 @@ func newServeCommand() *cobra.Command {
 }
 
 func runServe(cmd *cobra.Command, args []string) error {
+	slog.SetDefault(slog.New(
+		tint.NewHandler(os.Stderr, &tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.Kitchen,
+		}),
+	))
+
 	ctx, cancel := context.WithCancel(cmd.Context())
 	defer cancel()
 
@@ -100,20 +110,20 @@ func runServe(cmd *cobra.Command, args []string) error {
 	signalClient := signalcli.NewWithoutNumber(signalAPIURL)
 	linked, linkedNumber, err := signalClient.IsLinked(cmd.Context())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to check Signal link status: %v\n", err)
+		slog.Warn("failed to check Signal link status", "error", err)
 	}
 	if linked && linkedNumber != "" {
 		// Ensure DB is in sync with linked device
 		signalCfg := db.GetMessengerConfig("signal")
 		if signalCfg == nil || signalCfg.Phone != linkedNumber {
-			fmt.Printf("Syncing Signal configuration for %s...\n", linkedNumber)
+			slog.Info("Syncing Signal configuration", "linkedNumber", linkedNumber)
 			signalCfg = &db.MessengerConfig{
 				Type:    "signal",
 				Phone:   linkedNumber,
 				Enabled: true,
 			}
 			if err := db.SaveMessengerConfig(signalCfg); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to save Signal config: %v\n", err)
+				slog.Warn("failed to save Signal config", "error", err)
 			}
 		}
 	}
@@ -121,14 +131,14 @@ func runServe(cmd *cobra.Command, args []string) error {
 	signalCfg := db.GetMessengerConfig("signal")
 	if signalCfg != nil && signalCfg.Enabled && signalCfg.Phone != "" {
 		msgr = signalcli.New(signalCfg.Phone, signalAPIURL)
-		fmt.Println("Connecting to messenger...")
+		slog.Info("Connecting to messenger...")
 		if err := msgr.Connect(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to connect to the messenger: %v\n", err)
-			fmt.Println("Continuing without a messenger connection...")
+			slog.Warn("failed to connect to the messenger", "error", err)
+			slog.Info("Continuing without a messenger connection...")
 			msgr = nil
 		} else {
 			defer func() {
-				fmt.Println("\nShutting down...")
+				slog.Info("Shutting down messenger...")
 				_ = msgr.Disconnect()
 			}()
 		}
@@ -146,24 +156,24 @@ func runServe(cmd *cobra.Command, args []string) error {
 	// This needs to be after server is created so we can broadcast
 	if msgr != nil {
 		msgr.OnMessage(func(msg messenger.Message) {
-			fmt.Printf("Received message from %s: %s\n", msg.ContactID, msg.Content)
+			slog.Info("Received message", "contactID", msg.ContactID, "content", msg.Content)
 			server.BroadcastMessage(msg)
 			if err := ag.RecordMessage(context.Background(), msg); err != nil {
-				fmt.Fprintf(os.Stderr, "Error recording message: %v\n", err)
+				slog.Error("Error recording message", "error", err)
 			}
 			if llmClient != nil {
 				select {
 				case inbox <- msg:
 				default:
-					fmt.Println("Inbox full, dropping message for agent")
+					slog.Warn("Inbox full, dropping message for agent")
 				}
 			}
 		})
 		msgr.StartReceiving(ctx)
 	}
 
-	fmt.Printf("Starting server on %s\n", addr)
-	fmt.Println("Press Ctrl+C to stop.")
+	slog.Info("Starting server", "addr", addr)
+	slog.Info("Press Ctrl+C to stop.")
 
 	sigChan := make(chan os.Signal, 1)
 	sig.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -175,7 +185,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 
 	select {
 	case <-sigChan:
-		fmt.Println("\nShutting down...")
+		slog.Info("Shutting down...")
 		return server.Shutdown(ctx)
 	case err := <-errChan:
 		return err

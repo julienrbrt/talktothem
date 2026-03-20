@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +16,11 @@ import (
 )
 
 var (
-	ErrContactNotFound   = errors.New("contact not found")
-	ErrContactDisabled   = errors.New("contact disabled")
-	ErrNoMessages        = errors.New("no messages to learn from")
-	ErrNoUserMessages    = errors.New("no user messages to learn from")
-	ErrNoResponseNeeded  = errors.New("no response needed")
+	ErrContactNotFound  = errors.New("contact not found")
+	ErrContactDisabled  = errors.New("contact disabled")
+	ErrNoMessages       = errors.New("no messages to learn from")
+	ErrNoUserMessages   = errors.New("no user messages to learn from")
+	ErrNoResponseNeeded = errors.New("no response needed")
 )
 
 type LLM interface {
@@ -201,42 +202,6 @@ Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, m
 	return a.llm.Generate(ctx, prompt)
 }
 
-func (a *Agent) LearnUserStyle(ctx context.Context) (string, error) {
-	contactIDs, err := conversation.GetAllContactIDs()
-	if err != nil {
-		return "", err
-	}
-
-	var allMessages []string
-	for _, contactID := range contactIDs {
-		h, err := a.history(contactID)
-		if err != nil {
-			continue
-		}
-		messages := h.GetRecent(0)
-		for _, m := range messages {
-			if m.IsFromMe {
-				allMessages = append(allMessages, m.Content)
-			}
-		}
-	}
-
-	if len(allMessages) == 0 {
-		return "", ErrNoUserMessages
-	}
-
-	if len(allMessages) > 200 {
-		allMessages = allMessages[:200]
-	}
-
-	prompt := fmt.Sprintf(`Analyze these messages written by a user across all their conversations and describe their overall communication style:
-%s
-
-Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, slang/abbreviations, and any unique patterns. Be specific and concrete.`, strings.Join(allMessages, "\n"))
-
-	return a.llm.Generate(ctx, prompt)
-}
-
 func (a *Agent) CheckResponse(contactID string, within time.Duration) (ResponseCheck, error) {
 	c, ok := a.contacts.Get(contactID)
 	if !ok || !c.Enabled {
@@ -329,26 +294,26 @@ func (a *Agent) RecordMessage(ctx context.Context, msg messenger.Message) error 
 }
 
 func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
-	fmt.Println("[Agent] Run loop started")
+	slog.Info("Agent Run loop started")
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("[Agent] Context done, stopping")
+			slog.Info("Agent Context done, stopping")
 			return
 		case msg, ok := <-in:
 			if !ok {
-				fmt.Println("[Agent] Inbox closed, stopping")
+				slog.Info("Agent Inbox closed, stopping")
 				return
 			}
-			fmt.Printf("[Agent] Received message from %s: %s\n", msg.ContactID, msg.Content)
+			slog.Info("Agent Received message", "contactID", msg.ContactID, "content", msg.Content)
 			if msg.IsFromMe {
-				fmt.Println("[Agent] Message is from me, skipping generation")
+				slog.Info("Agent Message is from me, skipping generation")
 				continue
 			}
 
 			resp, err := a.Respond(ctx, msg)
 			if err != nil {
-				fmt.Printf("[Agent] Respond error: %v\n", err)
+				slog.Error("Agent Respond error", "error", err)
 				if errors.Is(err, ErrContactDisabled) || errors.Is(err, ErrContactNotFound) {
 					continue
 				}
@@ -356,12 +321,12 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 			}
 
 			if resp != "" {
-				fmt.Printf("[Agent] Generated response: %s\n", resp)
+				slog.Info("Agent Generated response", "response", resp)
 				select {
 				case a.outbox <- Response{Content: resp, ContactID: msg.ContactID}:
-					fmt.Println("[Agent] Response sent to outbox")
+					slog.Info("Agent Response sent to outbox")
 				default:
-					fmt.Println("[Agent] Outbox full, dropping response")
+					slog.Warn("Agent Outbox full, dropping response")
 				}
 			}
 		}

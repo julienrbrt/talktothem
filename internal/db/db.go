@@ -9,16 +9,16 @@ import (
 )
 
 type Config struct {
-	ID      uint   `gorm:"primaryKey"`
+	ID      uint `gorm:"primaryKey"`
 	APIKey  string
 	Model   string
 	BaseURL string
 }
 
 type UserProfile struct {
-	ID           uint   `gorm:"primaryKey"`
-	Name         string
-	About        string `gorm:"type:text"`
+	ID            uint `gorm:"primaryKey"`
+	Name          string
+	About         string `gorm:"type:text"`
 	FamilyContext string `gorm:"type:text"`
 	WorkContext   string `gorm:"type:text"`
 	WritingStyle  string `gorm:"type:text"`

@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/lmittmann/tint v1.1.3
 	github.com/openai/openai-go/v3 v3.29.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0

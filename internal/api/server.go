@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -77,8 +77,8 @@ func (h *Hub) Run() {
 }
 
 type MessageEvent struct {
-	Type    string      `json:"type"`
-	Payload interface{} `json:"payload"`
+	Type    string `json:"type"`
+	Payload any    `json:"payload"`
 }
 
 //go:embed templates/*.html templates/partials/*.html
@@ -215,7 +215,7 @@ func (s *Server) listenForAgentResponses() {
 		if s.messenger != nil {
 			err := s.messenger.SendMessage(context.Background(), resp.ContactID, resp.Content)
 			if err != nil {
-				log.Printf("Error sending agent message to messenger: %v", err)
+				slog.Error("Error sending agent message to messenger", "error", err)
 				// Decide if you want to continue or not
 			}
 		}
@@ -229,7 +229,7 @@ func (s *Server) listenForAgentResponses() {
 			IsFromMe:  true,
 		}
 		if err := s.agent.RecordMessage(context.Background(), msg); err != nil {
-			log.Printf("Error recording agent message: %v", err)
+			slog.Error("Error recording agent message", "error", err)
 		}
 
 		// Broadcast the message to the UI
@@ -264,7 +264,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) broadcastEvent(eventType string, payload interface{}) {
+func (s *Server) broadcastEvent(eventType string, payload any) {
 	event := MessageEvent{
 		Type:    eventType,
 		Payload: payload,
@@ -276,7 +276,6 @@ func (s *Server) broadcastEvent(eventType string, payload interface{}) {
 func (s *Server) BroadcastMessage(msg messenger.Message) {
 	s.broadcastEvent("new_message", messageToResponse(msg))
 }
-
 
 type ContactResponse struct {
 	ID          string `json:"id"`
@@ -481,7 +480,6 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// Always learn the conversation style first when enabling
 	style, _ := s.agent.LearnStyle(r.Context(), id)
 	s.contacts.SetStyle(id, style)
@@ -490,7 +488,7 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 	// Check for unanswered messages
 	check, _ := s.agent.CheckResponse(id, 48*time.Hour)
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"contact":         contactToResponse(c),
 		"hasUnanswered":   check.Needed,
 		"lastSender":      check.LastSender,
@@ -661,19 +659,19 @@ func (s *Server) checkResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 type StatusResponse struct {
-	Onboarded      bool   `json:"onboarded"`
-	HasSignal      bool   `json:"hasSignal"`
-	HasAPIKey      bool   `json:"hasApiKey"`
-	SignalNumber   string `json:"signalNumber,omitempty"`
-	ConnectedCount int    `json:"connectedCount"`
-	ConnectionStatus string `json:"connectionStatus"`
-	Messengers     map[string]MessengerStatus `json:"messengers,omitempty"`
+	Onboarded        bool                       `json:"onboarded"`
+	HasSignal        bool                       `json:"hasSignal"`
+	HasAPIKey        bool                       `json:"hasApiKey"`
+	SignalNumber     string                     `json:"signalNumber,omitempty"`
+	ConnectedCount   int                        `json:"connectedCount"`
+	ConnectionStatus string                     `json:"connectionStatus"`
+	Messengers       map[string]MessengerStatus `json:"messengers,omitempty"`
 }
 
 type MessengerStatus struct {
-	Enabled bool   `json:"enabled"`
-	Phone   string `json:"phone,omitempty"`
-	Connected bool `json:"connected,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	Phone     string `json:"phone,omitempty"`
+	Connected bool   `json:"connected,omitempty"`
 }
 
 func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
@@ -911,7 +909,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/html")
 	s.templates.ExecuteTemplate(w, "contacts", response)
 }
-
 
 type PageData struct {
 	Onboarded   bool
@@ -1173,4 +1170,3 @@ func (s *Server) updateSignalNumber(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusNoContent)
 }
-

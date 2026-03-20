@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -302,9 +303,9 @@ func (c *Client) SendReaction(ctx context.Context, contactID, messageID, emoji s
 	endpoint := fmt.Sprintf("%s/v1/reactions/%s", c.baseURL, url.PathEscape(c.number))
 
 	payload := map[string]any{
-		"recipient":    contactID,
-		"reaction":     emoji,
-		"timestamp":    time.Now().UnixMilli(),
+		"recipient":     contactID,
+		"reaction":      emoji,
+		"timestamp":     time.Now().UnixMilli(),
 		"target_author": contactID,
 	}
 
@@ -352,24 +353,24 @@ func (c *Client) receiveLoop(ctx context.Context) {
 		}
 
 		if !c.IsConnected() {
-			fmt.Println("[Signal] Not connected, stopping receive loop")
+			slog.Info("Signal Not connected, stopping receive loop")
 			return
 		}
 
 		endpoint := fmt.Sprintf("%s/v1/receive/%s", c.wsURL, url.PathEscape(c.number))
-		fmt.Printf("[Signal] Connecting to WebSocket: %s\n", endpoint)
+		slog.Info("Connecting to Signal WebSocket", "endpoint", endpoint)
 
 		conn, _, err := dialer.DialContext(ctx, endpoint, nil)
 		if err != nil {
-			fmt.Printf("[Signal] WebSocket dial error: %v, retrying in 5s...\n", err)
+			slog.Warn("Signal WebSocket dial error, retrying in 5s...", "error", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		fmt.Println("[Signal] WebSocket connected, waiting for messages...")
+		slog.Info("Signal WebSocket connected, waiting for messages...")
 
 		// Set up ping handler to keep connection alive
 		conn.SetPingHandler(func(appData string) error {
-			fmt.Println("[Signal] Received ping, sending pong")
+			slog.Debug("Signal Received ping, sending pong")
 			return conn.WriteMessage(websocket.PongMessage, nil)
 		})
 
@@ -383,27 +384,27 @@ func (c *Client) receiveLoop(ctx context.Context) {
 
 			// Set read deadline to detect stale connections
 			if err := conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
-				fmt.Printf("[Signal] Failed to set read deadline: %v\n", err)
+				slog.Error("Signal Failed to set read deadline", "error", err)
 				break
 			}
 
 			messageType, raw, err := conn.ReadMessage()
 			if err != nil {
 				if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-					fmt.Printf("[Signal] WebSocket closed normally: %v\n", err)
+					slog.Info("Signal WebSocket closed normally", "error", err)
 				} else if err.Error() == "read timeout" || strings.Contains(err.Error(), "timeout") {
-					fmt.Println("[Signal] Read timeout, connection still alive, continuing...")
+					slog.Debug("Signal Read timeout, connection still alive, continuing...")
 					continue
 				} else {
-					fmt.Printf("[Signal] WebSocket read error: %v\n", err)
+					slog.Error("Signal WebSocket read error", "error", err)
 				}
 				conn.Close()
 				time.Sleep(2 * time.Second)
 				break
 			}
 
-			fmt.Printf("[Signal] Received WebSocket message type=%d, %d bytes\n", messageType, len(raw))
-			fmt.Printf("[Signal] Raw content: %s\n", string(raw))
+			slog.Debug("Signal Received WebSocket message", "type", messageType, "bytes", len(raw))
+			slog.Debug("Signal Raw content", "content", string(raw))
 
 			var rawMessages []json.RawMessage
 			if err := json.Unmarshal(raw, &rawMessages); err != nil {
@@ -412,12 +413,12 @@ func (c *Client) receiveLoop(ctx context.Context) {
 				if err2 := json.Unmarshal(raw, &singleMsg); err2 == nil {
 					rawMessages = []json.RawMessage{singleMsg}
 				} else {
-					fmt.Printf("[Signal] Failed to unmarshal messages: %v\n", err)
+					slog.Error("Signal Failed to unmarshal messages", "error", err)
 					continue
 				}
 			}
 
-			fmt.Printf("[Signal] Parsed %d message envelopes\n", len(rawMessages))
+			slog.Debug("Signal Parsed message envelopes", "count", len(rawMessages))
 
 			for _, raw := range rawMessages {
 				msg := c.parseMessage(raw, "")
@@ -431,15 +432,15 @@ func (c *Client) receiveLoop(ctx context.Context) {
 					}
 				}
 				if msg == nil {
-					fmt.Println("[Signal] Parsed nil message, skipping")
+					slog.Debug("Signal Parsed nil message, skipping")
 					continue
 				}
 				if msg.Content == "" && msg.Type != messenger.TypeReaction {
-					fmt.Println("[Signal] Empty content, skipping (likely a receipt)")
+					slog.Debug("Signal Empty content, skipping (likely a receipt)")
 					continue
 				}
 
-				fmt.Printf("[Signal] Received message from %s: %s\n", msg.ContactID, msg.Content)
+				slog.Info("Signal Received message", "contactID", msg.ContactID, "content", msg.Content)
 
 				if msg.Type == messenger.TypeReaction {
 					if c.reactionHandler != nil {
@@ -464,10 +465,10 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 		Type       string `json:"type"`
 
 		DataMessage *struct {
-			Message     string `json:"message"`
-			Timestamp   int64  `json:"timestamp"`
-			ExpiresInSeconds int `json:"expiresInSeconds"`
-			Attachments []struct {
+			Message          string `json:"message"`
+			Timestamp        int64  `json:"timestamp"`
+			ExpiresInSeconds int    `json:"expiresInSeconds"`
+			Attachments      []struct {
 				ContentType string `json:"contentType"`
 				Filename    string `json:"filename"`
 			} `json:"attachments"`
@@ -482,9 +483,9 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 		} `json:"syncMessage"`
 
 		Reaction *struct {
-			Emoji            string `json:"emoji"`
-			TargetAuthor     string `json:"targetAuthor"`
-			TargetSentTimestamp int64 `json:"targetSentTimestamp"`
+			Emoji               string `json:"emoji"`
+			TargetAuthor        string `json:"targetAuthor"`
+			TargetSentTimestamp int64  `json:"targetSentTimestamp"`
 		} `json:"reaction"`
 	}
 
