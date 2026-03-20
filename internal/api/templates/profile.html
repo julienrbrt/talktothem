@@ -98,17 +98,13 @@
             });
 
             if (response.ok) {
-                if (typeof showToast === 'function') {
-                    showToast('Profile saved!');
-                } else {
-                    alert('Profile saved!');
-                }
+                showToast('Profile saved!', 'success');
             } else {
-                alert('Failed to save profile');
+                showToast('Failed to save profile', 'error');
             }
         } catch (e) {
             console.error('Error:', e);
-            alert('Failed to save profile');
+            showToast('Failed to save profile', 'error');
         }
     };
 

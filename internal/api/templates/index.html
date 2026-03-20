@@ -97,7 +97,7 @@ async function showQRCode() {
     try {
         const response = await fetch('/api/messenger/signal/link/start');
         if (!response.ok) {
-            alert('Failed to get QR code');
+            showToast('Failed to get QR code', 'error');
             return;
         }
 
@@ -177,11 +177,11 @@ async function submitOnboarding(e) {
             location.reload();
         } else {
             const text = await response.text();
-            alert('Failed to complete setup: ' + text);
+            showToast('Failed to complete setup: ' + text, 'error');
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Failed to complete setup');
+        showToast('Failed to complete setup', 'error');
     }
 }
 </script>
@@ -338,18 +338,62 @@ async function submitOnboarding(e) {
     </div>
 </div>
 
-<div id="toast" class="fixed bottom-4 right-4 hidden">
-    <div class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
+<div id="toast" class="fixed bottom-4 right-4 z-[100] hidden">
+    <div id="toast-container" class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2">
         <span id="toast-message"></span>
     </div>
 </div>
 
+<div id="confirm-modal" class="fixed inset-0 bg-black/50 z-[110] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+            <h3 id="confirm-title" class="text-lg font-semibold text-gray-800">Confirm Action</h3>
+        </div>
+        <div class="p-4">
+            <p id="confirm-text" class="text-gray-600">Are you sure you want to proceed?</p>
+        </div>
+        <div class="p-4 bg-gray-50 flex justify-end gap-2">
+            <button id="confirm-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+            <button id="confirm-ok" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors">Confirm</button>
+        </div>
+    </div>
+</div>
+
 <script>
-function showToast(message) {
+function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
-    document.getElementById('toast-message').textContent = message;
+    const container = document.getElementById('toast-container');
+    const messageEl = document.getElementById('toast-message');
+    
+    messageEl.textContent = message;
+    
+    container.className = 'px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 text-white ' + 
+        (type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-green-600' : 'bg-gray-800');
+    
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+function showConfirm(title, text, onConfirm, okText = 'Confirm', okClass = 'bg-blue-600 hover:bg-blue-700') {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-text').textContent = text;
+    
+    const okBtn = document.getElementById('confirm-ok');
+    okBtn.textContent = okText;
+    okBtn.className = 'px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-colors ' + okClass;
+    
+    const cancelBtn = document.getElementById('confirm-cancel');
+    
+    const close = () => modal.classList.replace('flex', 'hidden');
+    
+    okBtn.onclick = () => {
+        onConfirm();
+        close();
+    };
+    cancelBtn.onclick = close;
+    
+    modal.classList.replace('hidden', 'flex');
 }
 
 function openAddContactModal() {
@@ -379,13 +423,13 @@ async function createContact(e) {
             document.getElementById('contact-list').innerHTML = html;
             closeAddContactModal();
             form.reset();
-            showToast('Contact created!');
+            showToast('Contact created!', 'success');
         } else {
-            alert('Failed to create contact');
+            showToast('Failed to create contact', 'error');
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Failed to create contact');
+        showToast('Failed to create contact', 'error');
     }
 }
 
@@ -395,14 +439,14 @@ async function importFromSignal() {
         if (response.ok) {
             const html = await response.text();
             document.getElementById('contact-list').innerHTML = html;
-            showToast('Contacts imported!');
+            showToast('Contacts imported!', 'success');
         } else {
             const text = await response.text();
-            alert('Failed to import: ' + text);
+            showToast('Failed to import: ' + text, 'error');
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Failed to import contacts');
+        showToast('Failed to import contacts', 'error');
     }
 }
 
@@ -459,27 +503,27 @@ async function updateContact(e, contactId) {
             closeEditModal(contactId);
             location.reload();
         } else {
-            alert('Failed to update contact');
+            showToast('Failed to update contact', 'error');
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Failed to update contact');
+        showToast('Failed to update contact', 'error');
     }
 }
 
 async function deleteContact(contactId) {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
-
-    try {
-        const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
-        if (response.ok) {
-            closeEditModal(contactId);
-            location.href = '/';
+    showConfirm('Delete Contact', 'Are you sure you want to delete this contact?', async () => {
+        try {
+            const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
+            if (response.ok) {
+                closeEditModal(contactId);
+                location.href = '/';
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            showToast('Failed to delete contact', 'error');
         }
-    } catch (e) {
-        console.error('Error:', e);
-        alert('Failed to delete contact');
-    }
+    }, 'Delete', 'bg-red-600 hover:bg-red-700');
 }
 
 // Activate agent modal
@@ -546,18 +590,18 @@ async function activateAgent(contactId) {
         if (response.ok) {
             const data = await response.json();
             if (data.hasUnanswered) {
-                alert('Note: There are recent messages from this contact that may need a response.');
+                showToast('Note: There are recent messages that may need a response.', 'info');
             }
             closeActivateModal();
             loadContacts();
-            showToast('Agent activated!');
+            showToast('Agent activated!', 'success');
         } else {
             const text = await response.text();
-            alert('Failed to activate: ' + text);
+            showToast('Failed to activate: ' + text, 'error');
         }
     } catch (e) {
         console.error('Error:', e);
-        alert('Failed to activate agent');
+        showToast('Failed to activate agent', 'error');
     }
 }
 

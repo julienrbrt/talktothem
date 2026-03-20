@@ -145,27 +145,27 @@
                 closeEditModal(contactId);
                 location.reload();
             } else {
-                alert('Failed to update contact');
+                showToast('Failed to update contact', 'error');
             }
         } catch (e) {
             console.error('Error:', e);
-            alert('Failed to update contact');
+            showToast('Failed to update contact', 'error');
         }
     };
 
     window.deleteContact = async function(contactId) {
-        if (!confirm('Are you sure you want to delete this contact?')) return;
-
-        try {
-            const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
-            if (response.ok) {
-                closeEditModal(contactId);
-                location.href = '/';
+        showConfirm('Delete Contact', 'Are you sure you want to delete this contact?', async () => {
+            try {
+                const response = await fetch('/api/contacts/' + contactId, { method: 'DELETE' });
+                if (response.ok) {
+                    closeEditModal(contactId);
+                    location.href = '/';
+                }
+            } catch (e) {
+                console.error('Error:', e);
+                showToast('Failed to delete contact', 'error');
             }
-        } catch (e) {
-            console.error('Error:', e);
-            alert('Failed to delete contact');
-        }
+        }, 'Delete', 'bg-red-600 hover:bg-red-700');
     };
 
     window.initiateConversation = async function(contactId) {
@@ -178,18 +178,21 @@
             const response = await fetch('/api/contacts/' + contactId + '/initiate', { method: 'POST' });
             if (response.ok) {
                 const data = await response.json();
-                showToast('Conversation started!');
+                showToast('Conversation started!', 'success');
                 if (data.message) {
-                    alert('AI says: ' + data.message);
+                    showConfirm('AI Message', 'The agent wants to send: ' + data.message, () => {
+                        location.reload();
+                    }, 'OK');
+                } else {
+                    location.reload();
                 }
-                location.reload();
             } else {
                 const text = await response.text();
-                alert('Failed to start conversation: ' + text);
+                showToast('Failed to start conversation: ' + text, 'error');
             }
         } catch (e) {
             console.error('Error:', e);
-            alert('Failed to start conversation');
+            showToast('Failed to start conversation', 'error');
         } finally {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -200,14 +203,14 @@
         try {
             const response = await fetch('/api/contacts/' + contactId + '/sync', { method: 'POST' });
             if (response.ok) {
-                showToast('History synced!');
+                showToast('History synced!', 'success');
                 location.reload();
             } else {
-                alert('Failed to sync history');
+                showToast('Failed to sync history', 'error');
             }
         } catch (e) {
             console.error('Error:', e);
-            alert('Failed to sync history');
+            showToast('Failed to sync history', 'error');
         }
     };
 
@@ -215,14 +218,14 @@
         try {
             const response = await fetch('/api/contacts/' + contactId + '/learn-style', { method: 'POST' });
             if (response.ok) {
-                showToast('Writing style learned!');
+                showToast('Writing style learned!', 'success');
                 location.reload();
             } else {
-                alert('Failed to learn style: history might be too short');
+                showToast('Failed to learn style: history might be too short', 'error');
             }
         } catch (e) {
             console.error('Error:', e);
-            alert('Failed to learn style');
+            showToast('Failed to learn style', 'error');
         }
     };
 
