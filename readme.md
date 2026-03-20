@@ -6,9 +6,9 @@
 
 **An AI agent that talks to your friends and family for you.**
 
-<a href="#-cloud-deployment"><b>🚀 Deploy Now</b></a> ·
-<a href="#getting-started"><b>📖 Getting Started</b></a> ·
-<a href="#features"><b>✨ Features</b></a>
+<a href="#-cloud-deployment"><b>Deploy Now</b></a> ·
+<a href="#getting-started"><b>Getting Started</b></a> ·
+<a href="#features"><b>Features</b></a>
 
 </div>
 
@@ -20,19 +20,19 @@ TalkToThem learns your conversation style by analyzing your message history, the
 
 ## Features
 
-- **🎯 Learns your voice**: Analyzes your conversation patterns and writing style
-- **👁️ Multi-modal**: Sees images and can react to messages with appropriate responses
-- **👥 Contact-specific**: Understands different relationships and adjusts accordingly
-- **🤝 Hands-free conversations**: Let the agent maintain your social connections
-- **🌐 Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
-- **💾 Persistent storage**: All conversations and styles stored locally
+- **Learns your voice**: Analyzes your conversation patterns and writing style
+- **Multi-modal**: Sees images and can react to messages with appropriate responses
+- **Contact-specific**: Understands different relationships and adjusts accordingly
+- **Hands-free conversations**: Let the agent maintain your social connections
+- **Web UI**: Built-in dashboard with Go templates + HTMX for managing contacts and conversations
+- **Persistent storage**: All conversations and styles stored locally
 
 ## Supported Messengers
 
-- [ ] Signal
+- [x] Signal
 - [ ] WhatsApp
 
-## 🚀 Cloud Deployment
+## Cloud Deployment
 
 Deploy TalkToThem instantly to cloud:
 
@@ -112,6 +112,15 @@ Configuration is done through the web UI during onboarding. Settings are stored 
 - **OpenAI API Key** - Your OpenAI API key
 - **Model** - OpenAI model to use (default: gpt-4o)
 - **Base URL** - Optional, for OpenAI-compatible APIs
+
+**Important LLM Provider Recommendation:**
+
+We strongly recommend using local LLM providers to maintain privacy and control over your conversation data. Consider:
+
+- **LM Studio** - Easy-to-use local LLM interface
+- **llama.cpp** - Library for running LLMs locally
+
+These options run entirely on your machine, ensuring your message history and conversation patterns never leave your local environment.
 
 **Environment variable:** `TALKTOTHEM_DATA_PATH` - Path to store database (default: `~/.config/talktothem/`)
 
