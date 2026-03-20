@@ -25,6 +25,7 @@ type Message struct {
 	Timestamp time.Time
 	IsFromMe  bool
 	Reaction  string
+	IsGroup   bool
 }
 
 type Contact struct {

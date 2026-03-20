@@ -32,6 +32,7 @@ func (h *History) Add(msg messenger.Message) error {
 		Timestamp: msg.Timestamp.UnixMilli(),
 		IsFromMe:  msg.IsFromMe,
 		Reaction:  msg.Reaction,
+		IsGroup:   msg.IsGroup,
 	}
 
 	return db.DB.Create(&dbMsg).Error
@@ -88,6 +89,7 @@ func (h *History) getMessages(limit int, before *time.Time, since *time.Time) []
 			Timestamp: time.UnixMilli(m.Timestamp),
 			IsFromMe:  m.IsFromMe,
 			Reaction:  m.Reaction,
+			IsGroup:   m.IsGroup,
 		}
 	}
 
@@ -115,6 +117,7 @@ func (h *History) GetSince(since time.Time) []messenger.Message {
 			Timestamp: time.UnixMilli(m.Timestamp),
 			IsFromMe:  m.IsFromMe,
 			Reaction:  m.Reaction,
+			IsGroup:   m.IsGroup,
 		}
 	}
 
@@ -146,6 +149,7 @@ func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID str
 				Timestamp: msg.Timestamp.UnixMilli(),
 				IsFromMe:  msg.IsFromMe,
 				Reaction:  msg.Reaction,
+				IsGroup:   msg.IsGroup,
 			}
 			db.DB.Create(&dbMsg)
 		}
@@ -193,6 +197,7 @@ func GetLastMessage(contactID string) (*messenger.Message, error) {
 		Timestamp: time.UnixMilli(dbMsg.Timestamp),
 		IsFromMe:  dbMsg.IsFromMe,
 		Reaction:  dbMsg.Reaction,
+		IsGroup:   dbMsg.IsGroup,
 	}, nil
 }
 

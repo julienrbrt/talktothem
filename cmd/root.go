@@ -106,7 +106,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 
 	msgrs := make(map[string]messenger.Messenger)
-	
+
 	// Add Signal
 	signalMsgr := signalcli.NewWithoutNumber(signalAPIURL)
 	msgrs[signalMsgr.Name()] = signalMsgr
@@ -130,7 +130,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 				slog.Info("Enabling linked messenger", "messenger", name)
 				cfg.Enabled = true
 			}
-			
+
 			if err := db.SaveMessengerConfig(cfg); err != nil {
 				slog.Warn("failed to save messenger config", "messenger", name, "error", err)
 			}
@@ -166,7 +166,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 	// This needs to be after server is created so we can broadcast
 	for _, m := range msgrs {
 		m.OnMessage(func(msg messenger.Message) {
-			slog.Info("Received message", "contactID", msg.ContactID, "content", msg.Content)
+			slog.Info("Received message", "contactID", msg.ContactID, "content", msg.Content, "isGroup", msg.IsGroup)
 			server.BroadcastMessage(msg)
 			if err := ag.RecordMessage(context.Background(), msg); err != nil {
 				slog.Error("Error recording message", "error", err)

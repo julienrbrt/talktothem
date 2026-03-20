@@ -33,14 +33,14 @@ type MessengerConfig struct {
 }
 
 type Contact struct {
-	ID          string `gorm:"primaryKey"`
-	Name        string
-	Phone       string
-	Messenger   string
-	Enabled     bool
-	Description string `gorm:"type:text"`
-	Style       string `gorm:"type:text"`
-	Relation    string `gorm:"type:text"`
+	ID           string `gorm:"primaryKey"`
+	Name         string
+	Phone        string
+	Messenger    string
+	Enabled      bool
+	Description  string `gorm:"type:text"`
+	Style        string `gorm:"type:text"`
+	Relation     string `gorm:"type:text"`
 	BannedTopics string `gorm:"type:text"`
 }
 
@@ -53,6 +53,7 @@ type Message struct {
 	Timestamp int64
 	IsFromMe  bool
 	Reaction  string
+	IsGroup   bool
 }
 
 var DB *gorm.DB

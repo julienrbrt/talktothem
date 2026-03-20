@@ -584,9 +584,9 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 				Filename    string `json:"filename"`
 			} `json:"attachments"`
 			Sticker *struct {
-				PackID string `json:"packId"`
-				StickerID int `json:"stickerId"`
-				Filename string `json:"filename"`
+				PackID    string `json:"packId"`
+				StickerID int    `json:"stickerId"`
+				Filename  string `json:"filename"`
 			} `json:"sticker"`
 		} `json:"dataMessage"`
 
@@ -653,6 +653,15 @@ func (c *Client) parseMessage(raw json.RawMessage, filterContact string) *messen
 
 	default:
 		return nil
+	}
+
+	// Detect if message is from a group
+	// Group IDs in Signal don't start with + (which is for phone numbers)
+	// or contain special characters/patterns indicating a group
+	if msg.ContactID != "" {
+		// If contact ID doesn't start with '+', it's likely a group ID
+		// Group IDs in Signal are typically in the format: group.<uuid>
+		msg.IsGroup = !strings.HasPrefix(msg.ContactID, "+")
 	}
 
 	if filterContact != "" && msg.ContactID != filterContact {

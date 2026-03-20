@@ -105,11 +105,13 @@ type mockMessenger struct {
 	messages []messenger.Message
 }
 
-func (m *mockMessenger) Name() string                        { return "mock" }
+func (m *mockMessenger) Name() string                    { return "mock" }
 func (m *mockMessenger) Connect(_ context.Context) error { return nil }
 func (m *mockMessenger) Disconnect() error               { return nil }
 func (m *mockMessenger) IsConnected() bool               { return true }
-func (m *mockMessenger) StartLinking(ctx context.Context, deviceName string) ([]byte, error) { return nil, nil }
+func (m *mockMessenger) StartLinking(ctx context.Context, deviceName string) ([]byte, error) {
+	return nil, nil
+}
 func (m *mockMessenger) IsLinked(ctx context.Context) (bool, string, error) { return true, "mock", nil }
 func (m *mockMessenger) GetContacts(_ context.Context) ([]messenger.Contact, error) {
 	return nil, nil
@@ -121,11 +123,11 @@ func (m *mockMessenger) SendMessage(_ context.Context, _, _ string) error { retu
 func (m *mockMessenger) SendReaction(_ context.Context, _, _, _ string) error {
 	return nil
 }
-func (m *mockMessenger) MarkRead(_ context.Context, _ string, _ []string) error { return nil }
+func (m *mockMessenger) MarkRead(_ context.Context, _ string, _ []string) error        { return nil }
 func (m *mockMessenger) SendTypingIndicator(_ context.Context, _ string, _ bool) error { return nil }
-func (m *mockMessenger) OnMessage(_ func(messenger.Message))  {}
-func (m *mockMessenger) OnReaction(_ func(messenger.Message)) {}
-func (m *mockMessenger) StartReceiving(_ context.Context)     {}
+func (m *mockMessenger) OnMessage(_ func(messenger.Message))                           {}
+func (m *mockMessenger) OnReaction(_ func(messenger.Message))                          {}
+func (m *mockMessenger) StartReceiving(_ context.Context)                              {}
 
 func TestHistorySync(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "talktothem-test")

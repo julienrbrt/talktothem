@@ -90,7 +90,7 @@ func New(llm LLM, contacts *contact.Manager, dataPath string, opts ...Option) *A
 	return a
 }
 
-func (a *Agent) Outbox() <-chan Response { return a.outbox }
+func (a *Agent) Outbox() <-chan Response       { return a.outbox }
 func (a *Agent) Queued() <-chan QueuedResponse { return a.queued }
 
 func (a *Agent) history(contactID string) (*conversation.History, error) {
@@ -376,13 +376,20 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				slog.Info("Agent Inbox closed, stopping")
 				return
 			}
-			
+
 			if !a.HasLLM() {
 				slog.Info("Agent No LLM configured, skipping")
 				continue
 			}
 
-			slog.Info("Agent Received message", "contactID", msg.ContactID, "content", msg.Content)
+			slog.Info("Agent Received message", "contactID", msg.ContactID, "content", msg.Content, "isGroup", msg.IsGroup)
+
+			// Skip group messages to prevent mixing with normal conversations
+			if msg.IsGroup {
+				slog.Info("Agent Group message received, skipping", "contactID", msg.ContactID)
+				continue
+			}
+
 			if msg.IsFromMe {
 				slog.Info("Agent Message is from me, skipping generation")
 				continue
@@ -409,11 +416,11 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 
 				if resp != "" {
 					slog.Info("Agent Generated response", "response", resp)
-					
+
 					// Calculate delay
 					delay := a.calculateDelay(m, resp)
 					sendAt := time.Now().Add(delay)
-					
+
 					select {
 					case a.queued <- QueuedResponse{Content: resp, ContactID: cID, SendAt: sendAt}:
 					default:
@@ -457,8 +464,8 @@ func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.
 	}
 
 	// Base delay: 2-5 seconds for "thinking"
-	delay := time.Duration(2+ (time.Now().UnixNano()%3)) * time.Second
-	
+	delay := time.Duration(2+(time.Now().UnixNano()%3)) * time.Second
+
 	// Add typing time: ~200 chars per minute = ~3 chars per second
 	typingTime := time.Duration(min(len(response)/3, 30)) * time.Second
 	delay += typingTime
