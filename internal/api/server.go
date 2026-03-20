@@ -1290,16 +1290,18 @@ func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
 }
 
 type ConfigResponse struct {
-	APIKey  string `json:"apiKey"`
-	Model   string `json:"model"`
-	BaseURL string `json:"baseUrl"`
+	APIKey       string `json:"apiKey"`
+	Model        string `json:"model"`
+	BaseURL      string `json:"baseUrl"`
+	DisableDelay bool   `json:"disableDelay"`
 }
 
 func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
 	response := ConfigResponse{
-		APIKey:  s.config.APIKey,
-		Model:   s.config.Model,
-		BaseURL: s.config.BaseURL,
+		APIKey:       s.config.APIKey,
+		Model:        s.config.Model,
+		BaseURL:      s.config.BaseURL,
+		DisableDelay: s.config.DisableDelay,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -1307,9 +1309,10 @@ func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 type UpdateConfigRequest struct {
-	APIKey  string `json:"apiKey"`
-	Model   string `json:"model"`
-	BaseURL string `json:"baseUrl"`
+	APIKey       string `json:"apiKey"`
+	Model        string `json:"model"`
+	BaseURL      string `json:"baseUrl"`
+	DisableDelay *bool  `json:"disableDelay"`
 }
 
 func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
@@ -1327,6 +1330,9 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.BaseURL != "" {
 		s.config.BaseURL = req.BaseURL
+	}
+	if req.DisableDelay != nil {
+		s.config.DisableDelay = *req.DisableDelay
 	}
 
 	if err := db.UpdateConfig(s.config); err != nil {
@@ -1347,9 +1353,10 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ConfigResponse{
-		APIKey:  s.config.APIKey,
-		Model:   s.config.Model,
-		BaseURL: s.config.BaseURL,
+		APIKey:       s.config.APIKey,
+		Model:        s.config.Model,
+		BaseURL:      s.config.BaseURL,
+		DisableDelay: s.config.DisableDelay,
 	})
 }
 

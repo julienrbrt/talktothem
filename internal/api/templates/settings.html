@@ -72,6 +72,17 @@
                     <p class="text-xs text-gray-500 mt-1">For OpenAI-compatible APIs (leave empty for default)</p>
                 </div>
 
+                <div class="flex items-center gap-3 py-2">
+                    <input
+                        type="checkbox"
+                        id="config-disableDelay"
+                        class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <div>
+                        <label for="config-disableDelay" class="text-sm font-medium text-gray-700">Disable Chat Delay</label>
+                        <p class="text-xs text-gray-500">If checked, the agent will reply instantly instead of simulating typing speed.</p>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button
                         type="submit"
@@ -126,8 +137,9 @@
         const apiKey = document.getElementById('config-apiKey');
         const model = document.getElementById('config-model');
         const baseUrl = document.getElementById('config-baseUrl');
+        const disableDelay = document.getElementById('config-disableDelay');
 
-        if (!apiKey || !model || !baseUrl) return;
+        if (!apiKey || !model || !baseUrl || !disableDelay) return;
 
         try {
             const response = await fetch('/api/config');
@@ -136,6 +148,7 @@
                 apiKey.value = config.apiKey || '';
                 model.value = config.model || '';
                 baseUrl.value = config.baseUrl || '';
+                disableDelay.checked = !!config.disableDelay;
             }
         } catch (e) {
             console.error('Error loading config:', e);
@@ -148,7 +161,8 @@
         const data = {
             apiKey: document.getElementById('config-apiKey').value,
             model: document.getElementById('config-model').value,
-            baseUrl: document.getElementById('config-baseUrl').value
+            baseUrl: document.getElementById('config-baseUrl').value,
+            disableDelay: document.getElementById('config-disableDelay').checked
         };
 
         try {

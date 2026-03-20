@@ -416,6 +416,11 @@ func (a *Agent) Stop(contactID string) {
 }
 
 func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.Duration {
+	cfg := db.GetConfig()
+	if cfg != nil && cfg.DisableDelay {
+		return 0
+	}
+
 	// Base delay: 2-5 seconds for "thinking"
 	delay := time.Duration(2+ (time.Now().UnixNano()%3)) * time.Second
 	

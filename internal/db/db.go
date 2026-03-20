@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	ID      uint `gorm:"primaryKey"`
-	APIKey  string
-	Model   string
-	BaseURL string
+	ID           uint `gorm:"primaryKey"`
+	APIKey       string
+	Model        string
+	BaseURL      string
+	DisableDelay bool
 }
 
 type UserProfile struct {
