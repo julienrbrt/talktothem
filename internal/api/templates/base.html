@@ -264,27 +264,6 @@
         });
     };
 
-    window.importFromSignal = async function() {
-        try {
-            showToast('Importing contacts...');
-            const response = await fetch('/api/messenger/signal/contacts/import', { method: 'POST' });
-
-            if (response.ok) {
-                const contactListResponse = await fetch('/api/contacts');
-                if (contactListResponse.ok) {
-                    document.getElementById('contact-list').innerHTML = await contactListResponse.text();
-                }
-                showToast('Contacts imported');
-            } else {
-                const text = await response.text();
-                showToast('Import failed: ' + text);
-            }
-        } catch (e) {
-            console.error('Error:', e);
-            showToast('Import failed');
-        }
-    };
-
     async function updateConnectionStatus() {
         const dot = document.getElementById('connection-dot');
         const text = document.getElementById('connection-text');

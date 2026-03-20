@@ -971,6 +971,9 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 			_ = db.SaveMessengerConfig(cfg)
 		}
 		s.ensureConnected(msgr)
+
+		// Auto-import contacts from messenger
+		go s.importContactsFromMessengerAsync(r.Context(), mt)
 	}
 
 	response := MessengerLinkStatusResponse{
@@ -980,6 +983,47 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) importContactsFromMessengerAsync(ctx context.Context, mt string) {
+	msgr, ok := s.messengers[mt]
+	if !ok || msgr == nil {
+		return
+	}
+
+	messengerContacts, err := msgr.GetContacts(ctx)
+	if err != nil {
+		slog.Warn("Failed to get contacts for auto-import", "messenger", mt, "error", err)
+		return
+	}
+
+	var imported int
+	for _, mc := range messengerContacts {
+		if mc.Phone == "" {
+			continue
+		}
+
+		existing, _ := s.contacts.Get(mc.Phone)
+		if existing.ID != "" {
+			continue
+		}
+
+		c := contact.Contact{
+			ID:        mc.Phone,
+			Name:      mc.Name,
+			Phone:     mc.Phone,
+			Messenger: mt,
+			Enabled:   false,
+		}
+
+		if err := s.contacts.Add(c); err != nil {
+			continue
+		}
+
+		imported++
+	}
+
+	slog.Info("Auto-imported contacts from messenger", "messenger", mt, "count", imported)
 }
 
 type OnboardingRequest struct {
