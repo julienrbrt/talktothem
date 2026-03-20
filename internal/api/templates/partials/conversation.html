@@ -49,7 +49,7 @@
                     onclick="toggleAgent(this, '{{.Contact.ID}}', 'enable')"
                     class="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-purple-700 transition-all shadow-lg shadow-purple-200"
                     {{end}}>
-                    {{if .Contact.Enabled}}Stop Agent{{else}}Start Agent{{end}}
+                    {{if .Contact.Enabled}}Turn Off{{else}}Turn On{{end}}
                 </button>
                 <div class="h-6 w-px bg-gray-100 mx-1"></div>
                 <div class="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-100">
@@ -511,7 +511,7 @@
                         class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Social Relation</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Relationship</label>
                     <input
                         type="text"
                         name="relation"

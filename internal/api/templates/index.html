@@ -11,7 +11,7 @@
         <button
             onclick="openActivateModal()"
             class="w-full bg-black hover:bg-gray-800 text-white font-black text-xs uppercase tracking-[0.15em] py-3 px-4 rounded-xl transition-all shadow-lg shadow-gray-200">
-            Activate Agent
+            Turn On Agent
         </button>
         <button
             onclick="importFromSignal()"
@@ -144,7 +144,7 @@
 <div class="min-h-screen bg-black flex items-center justify-center p-6 overflow-hidden relative">
     <!-- Grid decorative background -->
     <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#6d28d9 1px, transparent 1px); background-size: 32px 32px;"></div>
-    
+
     <div class="max-w-xl w-full bg-[#111111] border border-white/10 rounded-[40px] p-12 shadow-2xl relative z-10">
         <div class="flex items-center gap-3 mb-12">
             <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
@@ -160,7 +160,7 @@
                     <h2 class="text-4xl font-black text-white tracking-tighter leading-none mb-4">Initialize<br/>Neural Link<span class="text-purple-600">.</span></h2>
                     <p class="text-gray-400 font-medium leading-relaxed">Establish a secondary device connection to your Signal account to begin synchronization.</p>
                 </div>
-                
+
                 <div id="qr-container" class="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col items-center justify-center min-h-[300px] group transition-all hover:bg-white/[0.07]">
                     <button onclick="startLinking()" id="link-btn" class="px-8 py-4 bg-white text-black font-black uppercase text-xs tracking-[0.2em] rounded-2xl hover:scale-105 transition-all shadow-xl shadow-white/5">
                         Generate QR Code
@@ -197,7 +197,7 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Model Matrix</label>
+                            <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">AI Model</label>
                             <input type="text" id="api-model" value="gpt-4o" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold">
                         </div>
                         <div class="space-y-2 flex flex-col justify-end">
@@ -207,7 +207,7 @@
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Relay Endpoint (Optional)</label>
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">API URL (Optional)</label>
                         <input type="text" id="api-base" placeholder="https://api.openai.com/v1" class="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all">
                     </div>
                 </div>
@@ -221,13 +221,13 @@ async function startLinking() {
     const btn = document.getElementById('link-btn');
     const container = document.getElementById('qr-container');
     const status = document.getElementById('link-status');
-    
+
     btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>';
-    
+
     try {
         const response = await fetch('/api/messenger/signal/link/start');
         const data = await response.json();
-        
+
         container.innerHTML = `
             <div class="bg-white p-3 rounded-[32px] shadow-2xl animate-in zoom-in-90 duration-300">
                 <img src="data:image/png;base64,${data.qrCode}" class="w-64 h-64 rounded-[20px]">
@@ -299,12 +299,12 @@ async function finishOnboarding() {
                     <input type="text" name="name" id="contact-name" required class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold" placeholder="Full Name">
                 </div>
                 <div class="space-y-2">
-                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Communication Channel</label>
+                    <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Messenger Type</label>
                     <input type="tel" name="phone" id="contact-phone" required placeholder="+1234567890" class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all mono font-bold">
                 </div>
                 <div class="grid grid-cols-1 gap-4 pt-2">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Social Relation</label>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Relationship</label>
                         <input type="text" name="relation" id="contact-relation" placeholder="e.g. Sister, Boss, Friend" class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-medium">
                     </div>
                 </div>
@@ -339,7 +339,7 @@ async function finishOnboarding() {
 <div id="activate-modal" class="fixed inset-0 modal-overlay z-50 hidden items-center justify-center p-4">
     <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         <div class="p-8 border-b border-gray-50 flex items-center justify-between">
-            <h3 class="text-2xl font-black text-gray-900 tracking-tight">Activate Agent<span class="text-purple-600">.</span></h3>
+            <h3 class="text-2xl font-black text-gray-900 tracking-tight">Turn On Agent<span class="text-purple-600">.</span></h3>
             <button onclick="closeActivateModal()" class="text-gray-300 hover:text-gray-900 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -348,7 +348,7 @@ async function finishOnboarding() {
             <input
                 type="text"
                 id="activate-search"
-                placeholder="Search matrix..."
+                placeholder="Search contacts..."
                 oninput="filterActivateContacts()"
                 class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all font-medium shadow-sm">
         </div>
