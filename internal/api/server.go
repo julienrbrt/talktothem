@@ -138,7 +138,6 @@ func NewServer(addr string, ag *agent.Agent, cm *contact.Manager, m messenger.Me
 		// User Profile
 		r.Get("/profile", s.getUserProfile)
 		r.Put("/profile", s.updateUserProfile)
-		r.Post("/profile/learn-style", s.learnUserStyle)
 	})
 
 	r.Get("/ws", s.handleWebSocket)
@@ -458,6 +457,10 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
+	// Always learn the conversation style first when enabling
+	style, _ := s.agent.LearnStyle(r.Context(), id)
+	s.contacts.SetStyle(id, style)
 	c, _ := s.contacts.Get(id)
 
 	// Check for unanswered messages
@@ -942,7 +945,6 @@ type UserProfileResponse struct {
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
-	WritingStyle  string `json:"writingStyle"`
 }
 
 func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -953,7 +955,6 @@ func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
 		About:         profile.About,
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
-		WritingStyle:  profile.WritingStyle,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -965,7 +966,6 @@ type UpdateUserProfileRequest struct {
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
-	WritingStyle  string `json:"writingStyle"`
 }
 
 func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -980,7 +980,6 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.About = req.About
 	profile.FamilyContext = req.FamilyContext
 	profile.WorkContext = req.WorkContext
-	profile.WritingStyle = req.WritingStyle
 
 	if err := db.UpdateUserProfile(profile); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -993,24 +992,6 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 		About:         profile.About,
 		FamilyContext: profile.FamilyContext,
 		WorkContext:   profile.WorkContext,
-		WritingStyle:  profile.WritingStyle,
 	})
 }
 
-func (s *Server) learnUserStyle(w http.ResponseWriter, r *http.Request) {
-	style, err := s.agent.LearnUserStyle(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	profile := db.GetUserProfile()
-	profile.WritingStyle = style
-	if err := db.UpdateUserProfile(profile); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"style": style})
-}

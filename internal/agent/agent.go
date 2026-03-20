@@ -132,10 +132,6 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
 
-	profile := db.GetUserProfile()
-	if profile.WritingStyle != "" {
-		fmt.Fprintf(&b, "\nYour overall writing style: %s\n", profile.WritingStyle)
-	}
 	if c.Style != "" {
 		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
 	}
@@ -295,10 +291,6 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 	var b strings.Builder
 	b.WriteString(systemPrompt(c))
 
-	profile := db.GetUserProfile()
-	if profile.WritingStyle != "" {
-		fmt.Fprintf(&b, "\nYour overall writing style: %s\n", profile.WritingStyle)
-	}
 	if c.Style != "" {
 		fmt.Fprintf(&b, "\nYour style with this person: %s\n", c.Style)
 	}

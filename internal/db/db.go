@@ -10,18 +10,18 @@ import (
 
 type Config struct {
 	ID      uint   `gorm:"primaryKey"`
-	APIKey  string `gorm:"default:''"`
-	Model   string `gorm:"default:'gpt-4o'"`
-	BaseURL string `gorm:"default:''"`
+	APIKey  string
+	Model   string
+	BaseURL string
 }
 
 type UserProfile struct {
-	ID             uint   `gorm:"primaryKey"`
-	Name           string `gorm:"default:''"`
-	About          string `gorm:"type:text"`
-	FamilyContext  string `gorm:"type:text"`
-	WorkContext    string `gorm:"type:text"`
-	WritingStyle   string `gorm:"type:text"`
+	ID           uint   `gorm:"primaryKey"`
+	Name         string
+	About        string `gorm:"type:text"`
+	FamilyContext string `gorm:"type:text"`
+	WorkContext   string `gorm:"type:text"`
+	WritingStyle  string `gorm:"type:text"`
 }
 
 type MessengerConfig struct {
@@ -36,8 +36,8 @@ type Contact struct {
 	ID          string `gorm:"primaryKey"`
 	Name        string
 	Phone       string
-	Messenger   string `gorm:"default:'signal'"` // "signal", "whatsapp", "telegram", etc.
-	Enabled     bool   `gorm:"default:false"`
+	Messenger   string
+	Enabled     bool
 	Description string `gorm:"type:text"`
 	Style       string `gorm:"type:text"`
 }
@@ -75,7 +75,7 @@ func Init(dataPath string) error {
 	var configCount int64
 	DB.Model(&Config{}).Count(&configCount)
 	if configCount == 0 {
-		DB.Create(&Config{Model: "gpt-4o"})
+		DB.Create(&Config{})
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func GetOrCreateConfig() *Config {
 	var config Config
 	result := DB.First(&config)
 	if result.Error == gorm.ErrRecordNotFound {
-		config = Config{Model: "gpt-4o"}
+		config = Config{}
 		DB.Create(&config)
 	}
 	return &config

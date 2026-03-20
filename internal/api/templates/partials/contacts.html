@@ -13,7 +13,10 @@
         <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" title="Agent active"></span>
     </div>
     {{if .Description}}
-    <p class="text-xs text-gray-400 mt-1 truncate">{{.Description}}</p>
+    <p class="text-xs text-gray-500 mt-1 truncate">{{.Description}}</p>
+    {{end}}
+    {{if .Style}}
+    <p class="text-xs text-gray-400 mt-1 truncate italic">Style: {{.Style}}</p>
     {{end}}
 </div>
 {{else}}
