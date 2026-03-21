@@ -137,7 +137,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 	c.number = number
 
-	req, err := c.newRequest(http.MethodPost, "/app/reconnect", nil)
+	req, err := c.newRequest(http.MethodGet, "/app/reconnect", nil)
 	if err != nil {
 		return fmt.Errorf("reconnect request: %w", err)
 	}
@@ -174,7 +174,7 @@ func (c *Client) IsConnected() bool {
 func (c *Client) StartLinking(ctx context.Context, deviceName string) ([]byte, error) {
 	slog.Info("Starting WhatsApp linking...")
 
-	logoutReq, _ := c.newRequest(http.MethodPost, "/app/logout", nil)
+	logoutReq, _ := c.newRequest(http.MethodGet, "/app/logout", nil)
 	if logoutReq != nil {
 		logoutResp, err := c.http.Do(logoutReq)
 		if err == nil {
@@ -200,27 +200,35 @@ func (c *Client) StartLinking(ctx context.Context, deviceName string) ([]byte, e
 	}
 
 	var result struct {
-		Code    int            `json:"code"`
-		Message string         `json:"message"`
-		Results map[string]any `json:"results"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Results struct {
+			QRLink     string `json:"qr_link"`
+			QRDuration int    `json:"qr_duration"`
+		} `json:"results"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	if result.Code != 200 {
+	if result.Code != "SUCCESS" && result.Code != "200" {
 		return nil, fmt.Errorf("login failed: %s", result.Message)
 	}
 
-	qrLink := fmt.Sprintf("%v", result.Results["qr_link"])
+	qrLink := result.Results.QRLink
 	if qrLink == "" {
 		return nil, fmt.Errorf("no qr_link in response")
 	}
 
+	qrLink = strings.TrimPrefix(qrLink, "http://localhost:3000")
+	if !strings.HasPrefix(qrLink, "http") {
+		qrLink = c.baseURL + qrLink
+	}
+
 	slog.Info("WhatsApp QR code generated, downloading image", "link", qrLink)
 
-	imgReq, err := http.NewRequest(http.MethodGet, qrLink, nil)
+	imgReq, err := c.newRequest(http.MethodGet, strings.TrimPrefix(qrLink, c.baseURL), nil)
 	if err != nil {
 		return nil, fmt.Errorf("image request: %w", err)
 	}
