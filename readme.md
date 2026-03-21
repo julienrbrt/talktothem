@@ -16,6 +16,12 @@
 
 TalkToThem learns your conversation style by analyzing your message history, then can hold conversations on your behalf with your contacts. Whether it's catching up with mom, chatting with your girlfriend, or responding to friends—the agent sounds like you.
 
+<div align="center">
+  <a href="https://youtu.be/IWIusSdn1e4?t=102">
+    <img src="https://img.youtube.com/vi/IWIusSdn1e4/hqdefault.jpg" alt="Obligatory Silicon Valley" width="560" height="315">
+  </a>
+</div>
+
 > **Note:** TalkToThem is designed for **1-on-1 conversations only**. Group chats are not currently supported.
 
 ## Features
