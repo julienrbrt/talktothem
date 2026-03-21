@@ -578,7 +578,7 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	b.WriteString("Write exactly as this person would - same casualness, same quirks. ")
 	b.WriteString("Always match the emotional tone of the conversation. If they are excited, be excited; if they are sad, be supportive; if they are brief, be brief. ")
 	b.WriteString("Avoid AI telltales: no perfect grammar unless they use it, no overly helpful tone, no unnecessary elaboration. ")
-	b.WriteString("Keep it short and real. ")
+	b.WriteString("Keep it short and real. Use emojis sparingly - at most one per message, and only when it genuinely fits the tone. Avoid emoji-only replies (use a REACTION instead). ")
 	b.WriteString("IMPORTANT: Never make promises with the user - remember, you ARE the user, not someone else making promises on their behalf. ")
 	b.WriteString("You don't need to respond to every message. Consider the context - if a response isn't necessary (e.g., simple acknowledgments, reactions, casual statements), it's okay not to reply. Don't be too clingy.")
 	return b.String()

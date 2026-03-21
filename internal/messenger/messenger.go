@@ -35,6 +35,11 @@ type Contact struct {
 	Enabled bool
 }
 
+type OwnProfile struct {
+	Name  string
+	About string
+}
+
 type Messenger interface {
 	Name() string
 	Connect(ctx context.Context) error
@@ -44,6 +49,7 @@ type Messenger interface {
 	StartLinking(ctx context.Context, deviceName string) ([]byte, error)
 	IsLinked(ctx context.Context) (bool, string, error)
 
+	GetOwnProfile(ctx context.Context) (*OwnProfile, error)
 	GetContacts(ctx context.Context) ([]Contact, error)
 	GetConversation(ctx context.Context, contactID string, limit int) ([]Message, error)
 	SendMessage(ctx context.Context, contactID, content string) error

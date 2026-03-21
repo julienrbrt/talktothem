@@ -194,6 +194,45 @@ func (c *Client) IsLinked(ctx context.Context) (bool, string, error) {
 	return false, "", nil
 }
 
+func (c *Client) GetOwnProfile(ctx context.Context) (*messenger.OwnProfile, error) {
+	endpoint := fmt.Sprintf("%s/v1/profile/%s", c.baseURL, url.PathEscape(c.number))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("get profile: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get profile failed: %s", string(body))
+	}
+
+	var profile struct {
+		Name        string `json:"name"`
+		About       string `json:"about"`
+		ProfileName string `json:"profileName"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&profile); err != nil {
+		return nil, fmt.Errorf("decode profile: %w", err)
+	}
+
+	name := profile.Name
+	if name == "" {
+		name = profile.ProfileName
+	}
+
+	return &messenger.OwnProfile{
+		Name:  name,
+		About: profile.About,
+	}, nil
+}
+
 func (c *Client) GetContacts(ctx context.Context) ([]messenger.Contact, error) {
 	endpoint := fmt.Sprintf("%s/v1/contacts/%s", c.baseURL, url.PathEscape(c.number))
 

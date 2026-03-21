@@ -1028,6 +1028,9 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 
 		// Auto-import contacts from messenger
 		go s.importContactsFromMessengerAsync(r.Context(), mt)
+
+		// Pre-fill user profile from messenger profile
+		go s.prefillProfileFromMessenger(r.Context(), mt)
 	}
 
 	response := MessengerLinkStatusResponse{
@@ -1080,6 +1083,43 @@ func (s *Server) importContactsFromMessengerAsync(ctx context.Context, mt string
 	}
 
 	slog.Info("Auto-imported contacts from messenger", "messenger", mt, "count", imported)
+}
+
+func (s *Server) prefillProfileFromMessenger(ctx context.Context, mt string) {
+	msgr, ok := s.messengers[mt]
+	if !ok || msgr == nil {
+		return
+	}
+
+	profile, err := msgr.GetOwnProfile(ctx)
+	if err != nil {
+		slog.Warn("Failed to get own profile from messenger", "messenger", mt, "error", err)
+		return
+	}
+
+	if profile.Name == "" && profile.About == "" {
+		return
+	}
+
+	existing := db.GetUserProfile()
+	updated := false
+
+	if existing.Name == "" && profile.Name != "" {
+		existing.Name = profile.Name
+		updated = true
+	}
+	if existing.About == "" && profile.About != "" {
+		existing.About = profile.About
+		updated = true
+	}
+
+	if updated {
+		if err := db.UpdateUserProfile(existing); err != nil {
+			slog.Warn("Failed to pre-fill user profile from messenger", "messenger", mt, "error", err)
+			return
+		}
+		slog.Info("Pre-filled user profile from messenger", "messenger", mt, "name", profile.Name, "about", profile.About)
+	}
 }
 
 type OnboardingRequest struct {

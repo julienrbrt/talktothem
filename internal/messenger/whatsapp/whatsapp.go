@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -288,6 +289,47 @@ func (c *Client) IsLinked(ctx context.Context) (bool, string, error) {
 	}
 
 	return false, "", nil
+}
+
+func (c *Client) GetOwnProfile(ctx context.Context) (*messenger.OwnProfile, error) {
+	phone := c.number
+	if phone != "" && !strings.Contains(phone, "@") {
+		phone = phone + "@s.whatsapp.net"
+	}
+
+	endpoint := fmt.Sprintf("/user/info?phone=%s", url.QueryEscape(phone))
+
+	req, err := c.newRequest(http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("get own profile: %w", err)
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("get own profile: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get own profile failed (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		Results struct {
+			VerifiedName string `json:"verified_name"`
+			Status       string `json:"status"`
+		} `json:"results"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode own profile: %w", err)
+	}
+
+	return &messenger.OwnProfile{
+		Name:  result.Results.VerifiedName,
+		About: result.Results.Status,
+	}, nil
 }
 
 func (c *Client) GetContacts(ctx context.Context) ([]messenger.Contact, error) {
