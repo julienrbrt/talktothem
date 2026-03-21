@@ -138,11 +138,13 @@
                         form.reset();
                         showToast("Contact created");
                         // Reload contact list
+                        const currentSearch = document.getElementById("sidebar-search")?.value || "";
                         const contactListResponse =
                             await fetch("/api/contacts");
                         if (contactListResponse.ok) {
                             document.getElementById("contact-list").innerHTML =
                                 await contactListResponse.text();
+                            if (currentSearch) filterSidebarContacts();
                         }
                     } else {
                         showToast("Failed to create contact");
@@ -215,12 +217,13 @@
                     if (response.ok) {
                         closeActivateModal();
                         showToast("Agent activated");
-                        // Reload contact list
+                        const currentSearch = document.getElementById("sidebar-search")?.value || "";
                         const contactListResponse =
                             await fetch("/api/contacts");
                         if (contactListResponse.ok) {
                             document.getElementById("contact-list").innerHTML =
                                 await contactListResponse.text();
+                            if (currentSearch) filterSidebarContacts();
                         }
                     } else {
                         showToast("Failed to activate");
@@ -249,6 +252,15 @@
                     } else {
                         btn.classList.add("hidden");
                     }
+                });
+            };
+
+            window.filterSidebarContacts = function () {
+                const search = document.getElementById("sidebar-search").value.toLowerCase();
+                const items = document.querySelectorAll("#contact-list .contact-item");
+                items.forEach((item) => {
+                    const name = item.textContent.toLowerCase();
+                    item.classList.toggle("hidden", !name.includes(search));
                 });
             };
 

@@ -596,7 +596,7 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Always learn the conversation style first when enabling
-	style, _ := s.agent.LearnStyle(r.Context(), id)
+	style, _ := s.agent.LearnStyle(context.Background(), id)
 	if err := s.contacts.SetStyle(id, style); err != nil {
 		slog.Error("Error setting contact style", "error", err)
 	}
@@ -729,7 +729,7 @@ func (s *Server) syncConversation(w http.ResponseWriter, r *http.Request) {
 
 	// Try to learn style if not set
 	if c.Style == "" {
-		style, _ := s.agent.LearnStyle(r.Context(), id)
+		style, _ := s.agent.LearnStyle(context.Background(), id)
 		if style != "" {
 			_ = s.contacts.SetStyle(id, style)
 		}
@@ -752,7 +752,7 @@ func (s *Server) clearHistory(w http.ResponseWriter, r *http.Request) {
 func (s *Server) learnStyle(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	style, err := s.agent.LearnStyle(r.Context(), id)
+	style, err := s.agent.LearnStyle(context.Background(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -1083,6 +1083,10 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 			} else if synced > 0 {
 				slog.Info("Synced history after onboarding", "messenger", req.Type, "count", synced)
 			}
+
+			if err := s.agent.LearnGlobalStyle(ctx); err != nil {
+				slog.Warn("Failed to learn global style after onboarding", "messenger", req.Type, "error", err)
+			}
 		}
 	}()
 
@@ -1312,7 +1316,7 @@ func (s *Server) learnGlobalStyle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.agent.LearnGlobalStyle(r.Context()); err != nil {
+	if err := s.agent.LearnGlobalStyle(context.Background()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

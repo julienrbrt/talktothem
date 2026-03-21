@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/julienrbrt/talktothem/internal/conversation"
 	"github.com/julienrbrt/talktothem/internal/db"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 )
@@ -184,50 +185,15 @@ Write this as a concise but rich paragraph (4-6 sentences) that would let someon
 
 func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 	if a.llm == nil {
-		return nil
+		return fmt.Errorf("LLM client not configured")
 	}
 
-	profile := db.GetUserProfile()
-	if profile.WritingStyle != "" {
-		return nil
-	}
+	slog.Info("Learning global style: fetching messages from local history")
 
-	var allMessages []messenger.Message
-	for _, msgr := range a.messengers {
-		if msgr == nil || !msgr.IsConnected() {
-			continue
-		}
+	allMessages := conversation.GetOutgoingMessages(500)
 
-		contacts, err := msgr.GetContacts(ctx)
-		if err != nil {
-			continue
-		}
-
-		for _, c := range contacts {
-			if len(allMessages) > 1000 {
-				break
-			}
-
-			msgs, err := msgr.GetConversation(ctx, c.ID, 100)
-			if err != nil {
-				continue
-			}
-
-			for _, m := range msgs {
-				if m.IsFromMe && m.Type == messenger.TypeText && m.Content != "" {
-					allMessages = append(allMessages, m)
-				}
-			}
-		}
-
-		if len(allMessages) > 1000 {
-			break
-		}
-	}
-
-	if len(allMessages) < 10 {
-		slog.Info("Not enough messages to learn global style", "count", len(allMessages))
-		return nil
+	if len(allMessages) == 0 {
+		return fmt.Errorf("no outgoing messages found in history")
 	}
 
 	sort.Slice(allMessages, func(i, j int) bool {
@@ -263,6 +229,7 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 		return err
 	}
 
+	profile := db.GetUserProfile()
 	profile.WritingStyle = style
 	if err := db.UpdateUserProfile(profile); err != nil {
 		return err

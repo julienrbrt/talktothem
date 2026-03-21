@@ -169,3 +169,17 @@ func GetMessageCount(contactID string) (int, error) {
 	}
 	return int(count), nil
 }
+
+func GetOutgoingMessages(limit int) []messenger.Message {
+	query := db.DB.Where("is_from_me = ? AND type = ? AND content != ?", true, "text", "").
+		Order("timestamp DESC")
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	var dbMessages []db.Message
+	if err := query.Find(&dbMessages).Error; err != nil {
+		return nil
+	}
+	slices.Reverse(dbMessages)
+	return mapMessages(dbMessages)
+}
