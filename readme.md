@@ -36,22 +36,7 @@ TalkToThem learns your conversation style by analyzing your message history, the
 ## Supported Messengers
 
 - [x] Signal
-- [ ] WhatsApp
-
-## Cloud Deployment
-
-Deploy TalkToThem instantly to cloud:
-
-| Provider     | Deploy                                                                                                                                                         |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DigitalOcean | [![Deploy to DO](https://www.deploytodo.com/do-btn-blue.svg)](https://cloud.digitalocean.com/apps/new?repo=https://github.com/julienrbrt/talktothem/tree/main) |
-
-**Quick setup after deployment:**
-
-1. Access your deployed web UI
-2. Complete onboarding with your OpenAI API key
-3. Link your Signal device (scan QR code)
-4. Import contacts and enable the agent
+- [x] WhatsApp
 
 ## Getting Started
 
