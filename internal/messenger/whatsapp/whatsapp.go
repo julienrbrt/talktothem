@@ -22,12 +22,13 @@ const deviceID = "talktothem"
 const maxMessageLimit = 100
 
 type Client struct {
-	baseURL   string
-	dataDir   string
-	connected bool
-	mu        sync.RWMutex
-	number    string
-	http      *http.Client
+	baseURL     string
+	dataDir     string
+	connected   bool
+	mu          sync.RWMutex
+	number      string
+	http        *http.Client
+	lastMessage map[string]string
 
 	messageHandler  func(messenger.Message)
 	reactionHandler func(messenger.Message)
@@ -39,9 +40,10 @@ func New(dataDir string, baseURL string) (*Client, error) {
 	}
 
 	client := &Client{
-		baseURL: baseURL,
-		dataDir: dataDir,
-		http:    &http.Client{Timeout: 30 * time.Second},
+		baseURL:     baseURL,
+		dataDir:     dataDir,
+		http:        &http.Client{Timeout: 30 * time.Second},
+		lastMessage: make(map[string]string),
 	}
 
 	if err := client.ensureDevice(); err != nil {
@@ -652,7 +654,7 @@ func (c *Client) StartReceiving(ctx context.Context) {
 	slog.Info("WhatsApp receiving started (polling mode)")
 
 	go func() {
-		ticker := time.NewTicker(3 * time.Second)
+		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
 		for {
@@ -719,8 +721,16 @@ func (c *Client) pollMessages(ctx context.Context) {
 		}
 
 		latest := msgs[0]
-		if !latest.IsFromMe && latest.Content != "" {
-			c.messageHandler(latest)
+
+		if lastID, seen := c.lastMessage[contactPhone]; seen && lastID == latest.ID {
+			continue
+		}
+		c.lastMessage[contactPhone] = latest.ID
+
+		if latest.Content != "" || len(latest.MediaURLs) > 0 {
+			if !latest.IsFromMe {
+				c.messageHandler(latest)
+			}
 		}
 	}
 }

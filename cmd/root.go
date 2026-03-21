@@ -184,10 +184,13 @@ func runServe(cmd *cobra.Command, args []string) error {
 				slog.Error("Error recording message", "error", err)
 			}
 			if llmClient != nil {
-				select {
-				case inbox <- msg:
-				default:
-					slog.Warn("Inbox full, dropping message for agent")
+				c, ok := contacts.Get(msg.ContactID)
+				if ok && c.Enabled {
+					select {
+					case inbox <- msg:
+					default:
+						slog.Warn("Inbox full, dropping message for agent")
+					}
 				}
 			}
 		})

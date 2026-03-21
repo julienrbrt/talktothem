@@ -450,6 +450,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 			}
 
 			if time.Since(msg.Timestamp) > 2*time.Minute {
+				slog.Info("Agent Skipping stale message", "contactID", msg.ContactID, "age", time.Since(msg.Timestamp))
 				continue
 			}
 

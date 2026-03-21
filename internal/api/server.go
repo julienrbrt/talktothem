@@ -116,7 +116,6 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(corsMiddleware)
-	r.Use(s.learnFromBrowserMiddleware)
 
 	r.Route("/api", func(r chi.Router) {
 		// Onboarding
@@ -200,18 +199,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (s *Server) learnFromBrowserMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.agent != nil {
-			hints := agent.ExtractBrowserHints(r)
-			if hints.Language != "" || hints.Timezone != "" {
-				s.agent.LearnFromBrowser(hints)
-			}
-		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -1066,6 +1053,13 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.ensureConnected(msgr)
+
+	if s.agent != nil {
+		hints := agent.ExtractBrowserHints(r)
+		if hints.Language != "" || hints.Timezone != "" {
+			s.agent.LearnFromBrowser(hints)
+		}
+	}
 
 	go func() {
 		ctx := context.Background()
