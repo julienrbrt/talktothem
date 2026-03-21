@@ -54,10 +54,6 @@ docker compose up -d
 # Open web UI and complete onboarding
 # http://localhost:8080
 
-# Link Signal device (first time only)
-# Open http://localhost:8081/v1/qrcodelink?device_name=talktothem
-# Scan QR code with Signal mobile app (Settings > Linked Devices > +)
-
 # View logs
 docker compose logs -f talktothem
 ```
@@ -65,6 +61,7 @@ docker compose logs -f talktothem
 **Data is stored in `./data/`:**
 
 - `data/signal/` - Signal registration keys
+- `data/whatsapp/` - WhatsApp session data
 - `data/talktothem.db` - SQLite database (config, contacts, messages)
 
 </details>
@@ -76,7 +73,7 @@ docker compose logs -f talktothem
 go install github.com/julienrbrt/talktothem@latest
 ```
 
-Requires a running [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) instance.
+Requires a running [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) and [go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice) instance.
 
 ### Usage
 
@@ -97,6 +94,7 @@ Configuration is done through the web UI during onboarding. Settings are stored 
 
 - **Signal Phone Number** - Your Signal phone number
 - **Signal API URL** - URL of your signal-cli-rest-api instance (default: http://localhost:8081)
+- **WhatsApp API URL** - URL of your go-whatsapp-web-multidevice instance (default: http://localhost:3000)
 - **OpenAI API Key** - Your OpenAI API key
 - **Model** - OpenAI model to use (default: gpt-4o)
 - **Base URL** - Optional, for OpenAI-compatible APIs
@@ -140,9 +138,9 @@ docker compose -f docker-compose.dev.yaml up -d
 
 ## How It Works
 
-1. **Connect** your Signal account via the web UI
+1. **Connect** your Signal or WhatsApp account via the web UI
 2. **Configure** your OpenAI API key in onboarding
-3. **Import** contacts from Signal
+3. **Import** contacts from your messenger
 4. **Let it learn** from your conversation history (sync button)
 5. **Enable** the agent for specific contacts
 
