@@ -975,7 +975,7 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 
 		// Pre-fill user profile from messenger profile
 		go func() {
-			if err := db.PrefillProfileFromMessenger(r.Context(), msgr, mt); err != nil {
+			if err := db.PrefillProfileFromMessenger(context.Background(), msgr, mt); err != nil {
 				slog.Warn("Failed to pre-fill user profile from messenger", "messenger", mt, "error", err)
 				return
 			}

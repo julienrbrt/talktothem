@@ -58,13 +58,8 @@
                                 type="text"
                                 id="profile-location"
                                 class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                                placeholder="Detected automatically"
+                                placeholder="Location"
                             />
-                            <span
-                                id="profile-location-hint"
-                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider"
-                                >Auto</span
-                            >
                         </div>
                     </div>
                     <div class="space-y-2">
@@ -77,13 +72,8 @@
                                 type="text"
                                 id="profile-timezone"
                                 class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                                placeholder="Detected automatically"
+                                placeholder="Timezone"
                             />
-                            <span
-                                id="profile-timezone-hint"
-                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider"
-                                >Auto</span
-                            >
                         </div>
                     </div>
                     <div class="space-y-2">
@@ -96,13 +86,8 @@
                                 type="text"
                                 id="profile-language"
                                 class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                                placeholder="Detected automatically"
+                                placeholder="Language"
                             />
-                            <span
-                                id="profile-language-hint"
-                                class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded-full uppercase tracking-wider"
-                                >Auto</span
-                            >
                         </div>
                     </div>
                 </div>
@@ -178,8 +163,6 @@
 
 <script>
     (function () {
-        const learnedFields = new Set();
-
         window.loadProfile = async function () {
             try {
                 const response = await fetch("/api/profile");
@@ -196,19 +179,13 @@
                     document.getElementById("profile-style").value =
                         profile.writingStyle || "";
 
-                    const locField = document.getElementById("profile-location");
-                    locField.value = profile.location || "";
-                    if (profile.location) learnedFields.add("location");
+                    document.getElementById("profile-location").value =
+                        profile.location || "";
+                    document.getElementById("profile-timezone").value =
+                        profile.timezone || "";
+                    document.getElementById("profile-language").value =
+                        profile.language || "";
 
-                    const tzField = document.getElementById("profile-timezone");
-                    tzField.value = profile.timezone || "";
-                    if (profile.timezone) learnedFields.add("timezone");
-
-                    const langField = document.getElementById("profile-language");
-                    langField.value = profile.language || "";
-                    if (profile.language) learnedFields.add("language");
-
-                    // Send timezone from browser if not already known
                     if (!profile.timezone && Intl) {
                         const browserTz =
                             Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -221,8 +198,7 @@
                                     timezone: browserTz,
                                 }),
                             });
-                            tzField.value = browserTz;
-                            learnedFields.add("timezone");
+                            document.getElementById("profile-timezone").value = browserTz;
                         }
                     }
                 }
