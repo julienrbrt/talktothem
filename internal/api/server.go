@@ -1027,10 +1027,25 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 		s.ensureConnected(msgr)
 
 		// Auto-import contacts from messenger
-		go s.importContactsFromMessengerAsync(r.Context(), mt)
+		go func() {
+			imported, err := s.contacts.ImportFromMessenger(r.Context(), msgr, mt)
+			if err != nil {
+				slog.Warn("Failed to import contacts from messenger", "messenger", mt, "error", err)
+				return
+			}
+			if imported > 0 {
+				slog.Info("Auto-imported contacts from messenger", "messenger", mt, "count", imported)
+			}
+		}()
 
 		// Pre-fill user profile from messenger profile
-		go s.prefillProfileFromMessenger(r.Context(), mt)
+		go func() {
+			if err := db.PrefillProfileFromMessenger(r.Context(), msgr, mt); err != nil {
+				slog.Warn("Failed to pre-fill user profile from messenger", "messenger", mt, "error", err)
+				return
+			}
+			slog.Info("Pre-filled user profile from messenger", "messenger", mt)
+		}()
 	}
 
 	response := MessengerLinkStatusResponse{
@@ -1041,84 +1056,6 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		slog.Error("Error encoding response", "error", err)
-	}
-}
-
-func (s *Server) importContactsFromMessengerAsync(ctx context.Context, mt string) {
-	msgr, ok := s.messengers[mt]
-	if !ok || msgr == nil {
-		return
-	}
-
-	messengerContacts, err := msgr.GetContacts(ctx)
-	if err != nil {
-		slog.Warn("Failed to get contacts for auto-import", "messenger", mt, "error", err)
-		return
-	}
-
-	var imported int
-	for _, mc := range messengerContacts {
-		if mc.Phone == "" {
-			continue
-		}
-
-		existing, _ := s.contacts.Get(mc.Phone)
-		if existing.ID != "" {
-			continue
-		}
-
-		c := contact.Contact{
-			ID:        mc.Phone,
-			Name:      mc.Name,
-			Phone:     mc.Phone,
-			Messenger: mt,
-			Enabled:   false,
-		}
-
-		if err := s.contacts.Add(c); err != nil {
-			continue
-		}
-
-		imported++
-	}
-
-	slog.Info("Auto-imported contacts from messenger", "messenger", mt, "count", imported)
-}
-
-func (s *Server) prefillProfileFromMessenger(ctx context.Context, mt string) {
-	msgr, ok := s.messengers[mt]
-	if !ok || msgr == nil {
-		return
-	}
-
-	profile, err := msgr.GetOwnProfile(ctx)
-	if err != nil {
-		slog.Warn("Failed to get own profile from messenger", "messenger", mt, "error", err)
-		return
-	}
-
-	if profile.Name == "" && profile.About == "" {
-		return
-	}
-
-	existing := db.GetUserProfile()
-	updated := false
-
-	if existing.Name == "" && profile.Name != "" {
-		existing.Name = profile.Name
-		updated = true
-	}
-	if existing.About == "" && profile.About != "" {
-		existing.About = profile.About
-		updated = true
-	}
-
-	if updated {
-		if err := db.UpdateUserProfile(existing); err != nil {
-			slog.Warn("Failed to pre-fill user profile from messenger", "messenger", mt, "error", err)
-			return
-		}
-		slog.Info("Pre-filled user profile from messenger", "messenger", mt, "name", profile.Name, "about", profile.About)
 	}
 }
 

@@ -164,8 +164,23 @@ func runServe(cmd *cobra.Command, args []string) error {
 					_ = mToClose.Disconnect()
 				}()
 
-				go importContactsOnStart(ctx, m, name, contacts)
-				go prefillProfileOnStart(ctx, m, name)
+				go func() {
+					imported, err := contacts.ImportFromMessenger(ctx, m, name)
+					if err != nil {
+						slog.Warn("Failed to import contacts on start", "messenger", name, "error", err)
+						return
+					}
+					if imported > 0 {
+						slog.Info("Imported contacts on start", "messenger", name, "count", imported)
+					}
+				}()
+				go func() {
+					if err := db.PrefillProfileFromMessenger(ctx, m, name); err != nil {
+						slog.Warn("Failed to pre-fill user profile on start", "messenger", name, "error", err)
+						return
+					}
+					slog.Info("Pre-filled user profile on start", "messenger", name)
+				}()
 			}
 		}
 	}
@@ -222,75 +237,5 @@ func runServe(cmd *cobra.Command, args []string) error {
 		return server.Shutdown(ctx)
 	case err := <-errChan:
 		return err
-	}
-}
-
-func importContactsOnStart(ctx context.Context, msgr messenger.Messenger, name string, contacts *contact.Manager) {
-	messengerContacts, err := msgr.GetContacts(ctx)
-	if err != nil {
-		slog.Warn("Failed to get contacts on start", "messenger", name, "error", err)
-		return
-	}
-
-	var imported int
-	for _, mc := range messengerContacts {
-		if mc.Phone == "" {
-			continue
-		}
-
-		existing, _ := contacts.Get(mc.Phone)
-		if existing.ID != "" {
-			continue
-		}
-
-		c := contact.Contact{
-			ID:        mc.Phone,
-			Name:      mc.Name,
-			Phone:     mc.Phone,
-			Messenger: name,
-			Enabled:   false,
-		}
-
-		if err := contacts.Add(c); err != nil {
-			continue
-		}
-
-		imported++
-	}
-
-	if imported > 0 {
-		slog.Info("Imported contacts on start", "messenger", name, "count", imported)
-	}
-}
-
-func prefillProfileOnStart(ctx context.Context, msgr messenger.Messenger, name string) {
-	profile, err := msgr.GetOwnProfile(ctx)
-	if err != nil {
-		slog.Warn("Failed to get own profile on start", "messenger", name, "error", err)
-		return
-	}
-
-	if profile.Name == "" && profile.About == "" {
-		return
-	}
-
-	existing := db.GetUserProfile()
-	updated := false
-
-	if existing.Name == "" && profile.Name != "" {
-		existing.Name = profile.Name
-		updated = true
-	}
-	if existing.About == "" && profile.About != "" {
-		existing.About = profile.About
-		updated = true
-	}
-
-	if updated {
-		if err := db.UpdateUserProfile(existing); err != nil {
-			slog.Warn("Failed to pre-fill user profile on start", "messenger", name, "error", err)
-			return
-		}
-		slog.Info("Pre-filled user profile on start", "messenger", name, "name", profile.Name, "about", profile.About)
 	}
 }

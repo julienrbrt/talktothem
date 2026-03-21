@@ -1,9 +1,12 @@
 package contact
 
 import (
+	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/julienrbrt/talktothem/internal/db"
+	"github.com/julienrbrt/talktothem/internal/messenger"
 )
 
 type Contact = db.Contact
@@ -106,4 +109,40 @@ func containsAny(s string, keywords ...string) bool {
 		}
 	}
 	return false
+}
+
+func (m *Manager) ImportFromMessenger(ctx context.Context, msgr messenger.Messenger, messengerName string) (int, error) {
+	messengerContacts, err := msgr.GetContacts(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	var imported int
+	for _, mc := range messengerContacts {
+		if mc.Phone == "" {
+			continue
+		}
+
+		existing, _ := m.Get(mc.Phone)
+		if existing.ID != "" {
+			continue
+		}
+
+		c := Contact{
+			ID:        mc.Phone,
+			Name:      mc.Name,
+			Phone:     mc.Phone,
+			Messenger: messengerName,
+			Enabled:   false,
+		}
+
+		if err := m.Add(c); err != nil {
+			slog.Warn("Failed to import contact", "phone", mc.Phone, "error", err)
+			continue
+		}
+
+		imported++
+	}
+
+	return imported, nil
 }

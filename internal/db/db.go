@@ -1,10 +1,12 @@
 package db
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
 	"github.com/glebarez/sqlite"
+	"github.com/julienrbrt/talktothem/internal/messenger"
 	"gorm.io/gorm"
 )
 
@@ -131,4 +133,33 @@ func UpdateUserProfile(profile *UserProfile) error {
 		return DB.Create(profile).Error
 	}
 	return DB.Save(profile).Error
+}
+
+func PrefillProfileFromMessenger(ctx context.Context, msgr messenger.Messenger, messengerName string) error {
+	profile, err := msgr.GetOwnProfile(ctx)
+	if err != nil {
+		return err
+	}
+
+	if profile.Name == "" && profile.About == "" {
+		return nil
+	}
+
+	existing := GetUserProfile()
+	updated := false
+
+	if existing.Name == "" && profile.Name != "" {
+		existing.Name = profile.Name
+		updated = true
+	}
+	if existing.About == "" && profile.About != "" {
+		existing.About = profile.About
+		updated = true
+	}
+
+	if !updated {
+		return nil
+	}
+
+	return UpdateUserProfile(existing)
 }
