@@ -239,12 +239,6 @@ func (s *Server) listenForAgentResponses() {
 		c, ok := s.contacts.Get(resp.ContactID)
 		if ok {
 			if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
-				if resp.TriggerMessageID != "" {
-					if err := msgr.MarkRead(context.Background(), resp.ContactID, []string{resp.TriggerMessageID}); err != nil {
-						slog.Error("Error marking message as read", "error", err)
-					}
-				}
-
 				if emoji, found := strings.CutPrefix(resp.Content, "REACTION: "); found {
 					emoji = strings.TrimSpace(emoji)
 					err := msgr.SendReaction(context.Background(), resp.ContactID, resp.TriggerMessageID, emoji)

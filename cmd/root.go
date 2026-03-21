@@ -167,7 +167,7 @@ func runServe(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	ag := agent.New(llmClient, contacts, dataPath, agent.WithVision(llmClient))
+	ag := agent.New(llmClient, contacts, msgrs, dataPath, agent.WithVision(llmClient))
 
 	inbox := make(chan messenger.Message, 100)
 	if llmClient != nil {

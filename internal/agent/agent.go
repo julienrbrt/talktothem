@@ -57,13 +57,14 @@ type ResponseCheck struct {
 }
 
 type Agent struct {
-	llm       LLM
-	vision    Vision
-	contacts  *contact.Manager
-	histories map[string]*conversation.History
-	historyMu sync.RWMutex
-	dataPath  string
-	cancels   sync.Map // contactID -> context.CancelFunc
+	llm        LLM
+	vision     Vision
+	contacts   *contact.Manager
+	histories  map[string]*conversation.History
+	historyMu  sync.RWMutex
+	dataPath   string
+	cancels    sync.Map // contactID -> context.CancelFunc
+	messengers map[string]messenger.Messenger
 
 	outbox chan Response
 	queued chan QueuedResponse
@@ -75,14 +76,15 @@ func WithVision(v Vision) Option {
 	return func(a *Agent) { a.vision = v }
 }
 
-func New(llm LLM, contacts *contact.Manager, dataPath string, opts ...Option) *Agent {
+func New(llm LLM, contacts *contact.Manager, messengers map[string]messenger.Messenger, dataPath string, opts ...Option) *Agent {
 	a := &Agent{
-		llm:       llm,
-		contacts:  contacts,
-		dataPath:  dataPath,
-		histories: make(map[string]*conversation.History),
-		outbox:    make(chan Response, 100),
-		queued:    make(chan QueuedResponse, 100),
+		llm:        llm,
+		contacts:   contacts,
+		messengers: messengers,
+		dataPath:   dataPath,
+		histories:  make(map[string]*conversation.History),
+		outbox:     make(chan Response, 100),
+		queued:     make(chan QueuedResponse, 100),
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -133,12 +135,27 @@ func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, err
 		return "", ErrContactDisabled
 	}
 
+	if err := a.markRead(ctx, c, msg); err != nil {
+		slog.Error("Agent Failed to mark message as read", "error", err)
+	}
+
 	h, err := a.history(msg.ContactID)
 	if err != nil {
 		return "", fmt.Errorf("get history: %w", err)
 	}
 
 	return a.generateResponse(ctx, c, h, msg)
+}
+
+func (a *Agent) markRead(ctx context.Context, c contact.Contact, msg messenger.Message) error {
+	if msg.ID == "" {
+		return nil
+	}
+	msgr, ok := a.messengers[c.Messenger]
+	if !ok || msgr == nil {
+		return nil
+	}
+	return msgr.MarkRead(ctx, msg.ContactID, []string{msg.ID})
 }
 
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
