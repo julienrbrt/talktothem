@@ -1077,7 +1077,8 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	s.ensureConnected(msgr)
 
 	go func() {
-		imported, err := s.contacts.ImportFromMessenger(r.Context(), msgr, req.Type)
+		// Use background context to not cancel the import.
+		imported, err := s.contacts.ImportFromMessenger(context.Background(), msgr, req.Type)
 		if err != nil {
 			slog.Warn("Failed to import contacts after onboarding", "messenger", req.Type, "error", err)
 			return
