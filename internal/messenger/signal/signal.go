@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -311,10 +312,15 @@ func (c *Client) SendMessage(ctx context.Context, contactID, content string) err
 func (c *Client) SendReaction(ctx context.Context, contactID, messageID, emoji string) error {
 	endpoint := fmt.Sprintf("%s/v1/reactions/%s", c.baseURL, url.PathEscape(c.number))
 
+	targetTimestamp, err := strconv.ParseInt(messageID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("parse message timestamp %q: %w", messageID, err)
+	}
+
 	payload := map[string]any{
 		"recipient":     contactID,
 		"reaction":      emoji,
-		"timestamp":     time.Now().UnixMilli(),
+		"timestamp":     targetTimestamp,
 		"target_author": contactID,
 	}
 

@@ -144,7 +144,20 @@ func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, err
 		return "", fmt.Errorf("get history: %w", err)
 	}
 
-	return a.generateResponse(ctx, c, h, msg)
+	resp, err := a.generateResponse(ctx, c, h, msg)
+	if err != nil {
+		return "", err
+	}
+
+	if emoji, found := strings.CutPrefix(resp, "REACTION: "); found {
+		emoji = strings.TrimSpace(emoji)
+		if err := a.sendReaction(ctx, c, msg, emoji); err != nil {
+			slog.Error("Agent Failed to send reaction", "error", err)
+		}
+		return "", nil
+	}
+
+	return resp, nil
 }
 
 func (a *Agent) markRead(ctx context.Context, c contact.Contact, msg messenger.Message) error {
@@ -156,6 +169,26 @@ func (a *Agent) markRead(ctx context.Context, c contact.Contact, msg messenger.M
 		return nil
 	}
 	return msgr.MarkRead(ctx, msg.ContactID, []string{msg.ID})
+}
+
+func (a *Agent) sendReaction(ctx context.Context, c contact.Contact, msg messenger.Message, emoji string) error {
+	msgr, ok := a.messengers[c.Messenger]
+	if !ok || msgr == nil {
+		return nil
+	}
+
+	if err := msgr.SendReaction(ctx, msg.ContactID, msg.ID, emoji); err != nil {
+		return err
+	}
+
+	a.RecordMessage(ctx, messenger.Message{
+		ContactID: msg.ContactID,
+		Type:      messenger.TypeReaction,
+		Reaction:  emoji,
+		Timestamp: time.Now(),
+		IsFromMe:  true,
+	})
+	return nil
 }
 
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
@@ -434,7 +467,6 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				if resp != "" {
 					slog.Info("Agent Generated response", "response", resp)
 
-					// Calculate delay
 					delay := a.calculateDelay(m, resp)
 					sendAt := time.Now().Add(delay)
 

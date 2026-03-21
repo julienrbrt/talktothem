@@ -239,17 +239,9 @@ func (s *Server) listenForAgentResponses() {
 		c, ok := s.contacts.Get(resp.ContactID)
 		if ok {
 			if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
-				if emoji, found := strings.CutPrefix(resp.Content, "REACTION: "); found {
-					emoji = strings.TrimSpace(emoji)
-					err := msgr.SendReaction(context.Background(), resp.ContactID, resp.TriggerMessageID, emoji)
-					if err != nil {
-						slog.Error("Error sending agent reaction to messenger", "error", err)
-					}
-				} else {
-					err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
-					if err != nil {
-						slog.Error("Error sending agent message to messenger", "error", err)
-					}
+				err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
+				if err != nil {
+					slog.Error("Error sending agent message to messenger", "error", err)
 				}
 			}
 		}
@@ -261,11 +253,6 @@ func (s *Server) listenForAgentResponses() {
 			Type:      messenger.TypeText,
 			Timestamp: time.Now(),
 			IsFromMe:  true,
-		}
-		if emoji, found := strings.CutPrefix(resp.Content, "REACTION: "); found {
-			msg.Type = messenger.TypeReaction
-			msg.Reaction = strings.TrimSpace(emoji)
-			msg.Content = ""
 		}
 		if err := s.agent.RecordMessage(context.Background(), msg); err != nil {
 			slog.Error("Error recording agent message", "error", err)

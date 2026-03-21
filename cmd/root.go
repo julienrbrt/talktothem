@@ -192,6 +192,13 @@ func runServe(cmd *cobra.Command, args []string) error {
 				}
 			}
 		})
+		m.OnReaction(func(msg messenger.Message) {
+			slog.Info("Received reaction", "contactID", msg.ContactID, "reaction", msg.Reaction)
+			server.BroadcastMessage(msg)
+			if err := ag.RecordMessage(context.Background(), msg); err != nil {
+				slog.Error("Error recording reaction", "error", err)
+			}
+		})
 		m.StartReceiving(ctx)
 	}
 
