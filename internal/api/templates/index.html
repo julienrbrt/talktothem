@@ -417,6 +417,7 @@
 
     let availableMessengers = [];
     let selectedMessenger = null;
+    let linkPollTimer = null;
 
     (async function initOnboarding() {
         try {
@@ -455,27 +456,38 @@
         document.getElementById('link-app-name').textContent = MESSENGER_META[selectedMessenger]?.label || selectedMessenger;
     }
 
+    function resetQRView() {
+        if (linkPollTimer) {
+            clearTimeout(linkPollTimer);
+            linkPollTimer = null;
+        }
+        const container = document.getElementById('qr-container');
+        container.innerHTML = '<button onclick="startLinking()" id="link-btn" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">Generate QR Code</button>';
+        document.getElementById('link-success').classList.add('hidden');
+        document.getElementById('step-config').classList.add('hidden');
+    }
+
     function selectMessenger(type) {
         selectedMessenger = type;
         renderMessengerSelector();
-        const container = document.getElementById('qr-container');
-        const linkStatus = document.getElementById('link-status');
-        if (linkStatus) linkStatus.classList.add('hidden');
-        container.innerHTML = '<button onclick="startLinking()" id="link-btn" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">Generate QR Code</button>';
-        document.getElementById('link-success').classList.add('hidden');
+        resetQRView();
     }
 
     async function startLinking() {
-        const btn = document.getElementById('link-btn');
+        if (linkPollTimer) {
+            clearTimeout(linkPollTimer);
+            linkPollTimer = null;
+        }
+
         const container = document.getElementById('qr-container');
-        btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>';
+        container.innerHTML = '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>';
 
         try {
             const response = await fetch(`/api/messenger/${selectedMessenger}/link/start`);
             if (!response.ok) {
                 let errMsg = 'Failed to generate QR';
                 try { const err = await response.json(); errMsg = err.error || errMsg; } catch(e) {}
-                container.innerHTML = `<button onclick="startLinking()" class="px-8 py-3 bg-gray-100 text-gray-500 font-black uppercase text-[11px] tracking-[0.15em] rounded-xl transition-all">${errMsg} — Retry</button>`;
+                container.innerHTML = `<button onclick="startLinking()" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">${errMsg} — Retry</button>`;
                 return;
             }
             const data = await response.json();
@@ -490,12 +502,12 @@
                     <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Waiting for scan</p>
                 </div>`;
             } else {
-                container.innerHTML = '<p class="text-red-500 font-bold text-sm text-center">Invalid QR response</p>';
+                container.innerHTML = '<button onclick="startLinking()" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">Invalid response — Retry</button>';
                 return;
             }
             startLinkPolling();
         } catch (e) {
-            container.innerHTML = '<button onclick="startLinking()" class="px-8 py-3 bg-gray-100 text-gray-500 font-black uppercase text-[11px] tracking-[0.15em] rounded-xl transition-all">Retry Generation</button>';
+            container.innerHTML = '<button onclick="startLinking()" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">Network error — Retry</button>';
         }
     }
 
@@ -507,6 +519,7 @@
                 const response = await fetch(`/api/messenger/${selectedMessenger}/link/status`);
                 const data = await response.json();
                 if (data.linked) {
+                    linkPollTimer = null;
                     document.getElementById('link-success').classList.remove('hidden');
                     document.getElementById('linked-number').textContent = data.number;
                     document.getElementById('linked-messenger-name').textContent = MESSENGER_META[selectedMessenger]?.label || selectedMessenger;
@@ -515,7 +528,7 @@
                 }
             } catch (e) {}
             attempts++;
-            setTimeout(poll, 1000);
+            linkPollTimer = setTimeout(poll, 1000);
         };
         poll();
     }
