@@ -154,10 +154,30 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 		return "", ErrNoUserMessages
 	}
 
-	prompt := fmt.Sprintf(`Analyze these messages written by a user and describe their communication style:
- %s
+	prompt := fmt.Sprintf(`You are a behavioral analyst. Study ONLY the messages below written by ONE person (the "user") to this specific contact. Your job is to build a precise personality profile for imitation.
 
-Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(mine, "\n"))
+Messages from the user:
+%s
+
+Write a detailed style profile covering these dimensions. Be extremely specific with examples from the messages:
+
+1. TONE & FORMALITY: What is their default emotional register? (warm, dry, sarcastic, enthusiastic, reserved, teasing, etc.) How formal or casual are they? Give examples.
+
+2. MESSAGE LENGTH: What is their typical message length? Do they send single words, short bursts, or long paragraphs? Do they match the other person's length?
+
+3. EMOJI HABITS: How often do they use emojis? Which ones do they repeat? Do they use them at the end of messages, in the middle, or as standalone reactions? Are they minimalist or generous?
+
+4. PUNCTUATION & GRAMMAR: Do they use proper punctuation, no punctuation, lots of exclamation marks, ellipsis, all caps? Do they abbreviate words (thx, lol, nvm, rn)? Do they use informal spelling?
+
+5. GREETINGS & SIGNATURES: How do they typically start and end conversations? Do they have signature phrases or habitual openers?
+
+6. HUMOR STYLE: What kind of humor do they use? (dry wit, self-deprecating, teasing, dad jokes, none)
+
+7. RESPONSIVENESS: Are they typically responsive with short quick replies or longer thoughtful ones?
+
+8. LANGUAGE: What language do they write in? Do they mix languages?
+
+Write this as a concise but rich paragraph (4-6 sentences) that would let someone perfectly mimic how this person texts. Do NOT be vague — use specific observable patterns.`, strings.Join(mine, "\n"))
 
 	return a.llm.Generate(ctx, prompt)
 }
@@ -223,10 +243,20 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 		texts = append(texts, m.Content)
 	}
 
-	prompt := "Analyze these messages from a single user across multiple conversations:\n" +
+	prompt := "You are a behavioral analyst. Study ONLY the messages below — ALL written by the SAME person across multiple conversations. Build a comprehensive personality profile for imitation.\n\n" +
+		"Messages from the user:\n" +
 		strings.Join(texts, "\n") +
-		"\n\nDescribe their overall writing style in 2-3 sentences. Focus on: tone, formality, emoji usage, " +
-		"typical message length, slang, and any distinctive patterns. Be specific."
+		"\n\nWrite a detailed style profile covering these dimensions. Be extremely specific with examples:\n\n" +
+		"1. TONE & FORMALITY: Default emotional register? (warm, dry, sarcastic, enthusiastic, reserved, teasing) Formal or casual?\n" +
+		"2. MESSAGE LENGTH: Single words, short bursts, or long paragraphs? Do they adapt length to the conversation?\n" +
+		"3. EMOJI HABITS: Frequency? Which ones repeat? Placement in messages? Minimalist or generous?\n" +
+		"4. PUNCTUATION & GRAMMAR: Proper punctuation or none? Lots of !, ..., ALL CAPS? Abbreviations (thx, lol, nvm)? Informal spelling?\n" +
+		"5. GREETINGS & SIGNATURES: How do they start/end conversations? Signature phrases or habitual openers?\n" +
+		"6. HUMOR STYLE: Dry wit, self-deprecating, teasing, dad jokes, dark humor, or none?\n" +
+		"7. RESPONSIVENESS: Quick short replies or longer thoughtful ones?\n" +
+		"8. LANGUAGE: Primary language? Do they mix languages or code-switch?\n" +
+		"9. UNIQUE QUIRKS: Any distinctive patterns, recurring phrases, typing habits?\n\n" +
+		"Write a concise but rich paragraph (4-6 sentences) that would let someone perfectly mimic this person. Do NOT be vague — use specific observable patterns."
 
 	style, err := a.llm.Generate(ctx, prompt)
 	if err != nil {

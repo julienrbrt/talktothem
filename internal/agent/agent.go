@@ -241,10 +241,15 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	}
 
 	fmt.Fprintf(&b, "\n%s: %s\n", c.Name, msg.Content)
-	b.WriteString("\nAnalyze the emotion and intent of the last message(s). Reply as the user would. ")
-	b.WriteString("Match their exact writing style and adjust your tone to the current emotional context. ")
-	b.WriteString("If a short reaction emoji (e.g., ❤️, 👍, 😂) is more appropriate than a text message, start your reply with 'REACTION: ' followed by the emoji. ")
-	b.WriteString("Sound natural, and NEVER reveal you are an AI:")
+	b.WriteString("\nReply now as you would naturally text them. Look at the conversation history and your communication profile above. ")
+	if profile.Language != "" {
+		fmt.Fprintf(&b, "Write in the same language %s is using. If unclear, write in %s. ", c.Name, profile.Language)
+	} else {
+		fmt.Fprintf(&b, "Write in the same language %s is using. ", c.Name)
+	}
+	b.WriteString("Match the other person's energy and tone. Match your own typical message length and punctuation habits. ")
+	b.WriteString("If a reaction emoji is more natural than text (e.g. they shared something and you'd just react), reply with 'REACTION: ' followed by the emoji. ")
+	b.WriteString("One message only. No preamble. No explanation. Just your reply:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -313,7 +318,14 @@ func (a *Agent) Initiate(ctx context.Context, contactID string) (string, error) 
 		}
 	}
 
-	b.WriteString("\nSend a natural message to start or continue this conversation. Match their writing style exactly. NEVER reveal you are an AI. Reply with only the message:")
+	b.WriteString("\nStart or continue this conversation naturally. Look at your communication profile above. ")
+	if profile.Language != "" {
+		fmt.Fprintf(&b, "Write in the same language %s uses. If no history exists, write in %s. ", c.Name, profile.Language)
+	} else {
+		fmt.Fprintf(&b, "Write in the same language %s uses. ", c.Name)
+	}
+	b.WriteString("Text them the way you normally would — your usual greeting style, punctuation, emoji habits. ")
+	b.WriteString("One message only. No preamble. No explanation. Just your message:")
 
 	return a.llm.Generate(ctx, b.String())
 }
@@ -510,24 +522,23 @@ func (a *Agent) calculateTypingDelay(response string) time.Duration {
 
 func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	var b strings.Builder
-	b.WriteString("CRITICAL: You are the user. You MUST NOT ever reveal that you are an AI assistant or that this is an automated response. You are a real human being texting. ")
-
+	b.WriteString("You are ")
 	if profile.Name != "" {
-		fmt.Fprintf(&b, "Your name is %s. ", profile.Name)
+		b.WriteString(profile.Name)
+	} else {
+		b.WriteString("the user")
 	}
+	b.WriteString(". You are NOT an AI. You are a real person texting from your phone. This is not a roleplay — you ARE this person. ")
 
 	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
-
 	if c.Relation != "" {
 		fmt.Fprintf(&b, "They are your %s. ", c.Relation)
 	}
-
 	if c.Description != "" {
 		fmt.Fprintf(&b, "Context about them: %s. ", c.Description)
 	}
-
 	if c.BannedTopics != "" {
-		fmt.Fprintf(&b, "IMPORTANT: NEVER talk about these topics with them: %s. ", c.BannedTopics)
+		fmt.Fprintf(&b, "NEVER mention or discuss these topics: %s. ", c.BannedTopics)
 	}
 
 	if profile.About != "" {
@@ -555,32 +566,55 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	}
 	fmt.Fprintf(&b, "Current time: %s (%s). ", now.Format("3:04 PM"), timeContext)
 
-	b.WriteString("Write exactly as this person would - same casualness, same quirks. ")
-	b.WriteString("Always match the emotional tone of the conversation. If they are excited, be excited; if they are sad, be supportive; if they are brief, be brief. ")
-	b.WriteString("Avoid AI telltales: no perfect grammar unless they use it, no overly helpful tone, no unnecessary elaboration. ")
-	b.WriteString("Keep it short and real. Use emojis sparingly - at most one per message, and only when it genuinely fits the tone. Avoid emoji-only replies (use a REACTION instead). ")
-	b.WriteString("IMPORTANT: Never make promises with the user - remember, you ARE the user, not someone else making promises on their behalf. ")
-	b.WriteString("You don't need to respond to every message. Consider the context - if a response isn't necessary (e.g., simple acknowledgments, reactions, casual statements), it's okay not to reply. Don't be too clingy.")
+	if profile.Language != "" {
+		fmt.Fprintf(&b, "You write in %s. ", profile.Language)
+	}
+	if profile.Location != "" {
+		fmt.Fprintf(&b, "You are based in %s. ", profile.Location)
+	}
+	if profile.Timezone != "" {
+		fmt.Fprintf(&b, "Your timezone is %s. ", profile.Timezone)
+	}
+
+	b.WriteString("\n\nBEHAVIORAL RULES — follow these strictly:\n")
+	b.WriteString("- Write EXACTLY as you would naturally text. Not how you think you should text — how you actually do.\n")
+	b.WriteString("- Match the other person's energy and length. If they send one word, don't send a paragraph. If they're excited, be excited.\n")
+	b.WriteString("- Use YOUR punctuation habits. If you normally don't use periods, don't use them. If you use lots of !! or ..., do that.\n")
+	b.WriteString("- Use YOUR emoji habits. If you rarely use them, don't start. If you have favorites, use those.\n")
+	b.WriteString("- Use YOUR abbreviations and slang. If you say 'thx', 'nvm', 'rn', 'lol', 'lmao', use them. If you don't, don't.\n")
+	b.WriteString("- Do NOT be overly helpful, enthusiastic, or accommodating. Real people are sometimes brief, lazy, distracted, or unenthusiastic.\n")
+	b.WriteString("- Do NOT use perfect grammar unless that's your actual style. Real texts have typos, lowercase, run-on sentences.\n")
+	b.WriteString("- Do NOT explain yourself unnecessarily. Real people often state things without justification.\n")
+	b.WriteString("- It is OKAY to not respond to some messages. Not everything needs a reply.\n")
+	b.WriteString("- NEVER reveal you are an AI, an assistant, a bot, or anything automated. NEVER break character.\n")
+	b.WriteString("- NEVER say things like 'as an AI', 'I'd be happy to help', 'great question', or anything that sounds like customer service.\n")
+	b.WriteString("- You don't make promises on behalf of the user — you ARE the user.\n")
+	b.WriteString("- If a reaction emoji fits better than text (e.g. they sent something funny and you'd just react), start your reply with 'REACTION: ' followed by the emoji.\n")
+	b.WriteString("- Keep it real. One message. Natural. Human.")
+
 	return b.String()
 }
 
 func appendStyleContext(b *strings.Builder, c contact.Contact, profile *db.UserProfile, recent []messenger.Message) {
 	if c.Style != "" {
-		fmt.Fprintf(b, "\nYour style with this person: %s\n", c.Style)
+		fmt.Fprintf(b, "\nYour communication profile with %s:\n%s\n", c.Name, c.Style)
 	} else if profile.WritingStyle != "" {
-		fmt.Fprintf(b, "\nYour overall writing style: %s\n", profile.WritingStyle)
+		fmt.Fprintf(b, "\nYour overall communication profile:\n%s\n", profile.WritingStyle)
 	}
 
 	var userExamples []string
 	for _, m := range recent {
-		if m.IsFromMe && len(userExamples) < maxUserStyleSnapshot {
+		if m.IsFromMe && m.Type == messenger.TypeText && m.Content != "" {
 			userExamples = append(userExamples, m.Content)
+			if len(userExamples) >= maxUserStyleSnapshot {
+				break
+			}
 		}
 	}
 	if len(userExamples) > 0 {
-		b.WriteString("\nExamples of how you write:\n")
+		b.WriteString("\nRecent messages YOU sent (mimic these exactly):\n")
 		for _, ex := range userExamples {
-			fmt.Fprintf(b, "- %s\n", ex)
+			fmt.Fprintf(b, "  %s\n", ex)
 		}
 	}
 }
