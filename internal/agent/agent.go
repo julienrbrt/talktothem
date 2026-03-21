@@ -449,6 +449,10 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				continue
 			}
 
+			if time.Since(msg.Timestamp) > 2*time.Minute {
+				continue
+			}
+
 			// Cancel any previous pending response for this contact
 			a.Stop(msg.ContactID)
 
