@@ -90,7 +90,7 @@ var templatesFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
-func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[string]messenger.Messenger, cfg *db.Config, assets fs.FS) *Server {
+func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Manager, msgrs map[string]messenger.Messenger, cfg *db.Config) *Server {
 	r := chi.NewRouter()
 
 	tmpl := template.Must(template.ParseFS(templatesFS,
@@ -116,6 +116,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(corsMiddleware)
+	r.Use(s.learnFromBrowserMiddleware)
 
 	r.Route("/api", func(r chi.Router) {
 		// Onboarding
@@ -156,6 +157,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 		// User Profile
 		r.Get("/profile", s.getUserProfile)
 		r.Put("/profile", s.updateUserProfile)
+		r.Post("/profile/learn-style", s.learnGlobalStyle)
 	})
 
 	r.Get("/ws", s.handleWebSocket)
@@ -198,6 +200,18 @@ func corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) learnFromBrowserMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.agent != nil {
+			hints := agent.ExtractBrowserHints(r)
+			if hints.Language != "" || hints.Timezone != "" {
+				s.agent.LearnFromBrowser(hints)
+			}
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -1271,6 +1285,9 @@ type UserProfileResponse struct {
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
 	WritingStyle  string `json:"writingStyle"`
+	Location      string `json:"location"`
+	Timezone      string `json:"timezone"`
+	Language      string `json:"language"`
 }
 
 func toUserProfileResponse(p *db.UserProfile) UserProfileResponse {
@@ -1280,10 +1297,27 @@ func toUserProfileResponse(p *db.UserProfile) UserProfileResponse {
 		FamilyContext: p.FamilyContext,
 		WorkContext:   p.WorkContext,
 		WritingStyle:  p.WritingStyle,
+		Location:      p.Location,
+		Timezone:      p.Timezone,
+		Language:      p.Language,
 	}
 }
 
 func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, toUserProfileResponse(db.GetUserProfile()))
+}
+
+func (s *Server) learnGlobalStyle(w http.ResponseWriter, r *http.Request) {
+	if s.agent == nil {
+		http.Error(w, "agent not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := s.agent.LearnGlobalStyle(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	writeJSON(w, toUserProfileResponse(db.GetUserProfile()))
 }
 
@@ -1293,6 +1327,9 @@ type UpdateUserProfileRequest struct {
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
 	WritingStyle  string `json:"writingStyle"`
+	Location      string `json:"location"`
+	Timezone      string `json:"timezone"`
+	Language      string `json:"language"`
 }
 
 func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
@@ -1308,6 +1345,9 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	profile.FamilyContext = req.FamilyContext
 	profile.WorkContext = req.WorkContext
 	profile.WritingStyle = req.WritingStyle
+	profile.Location = req.Location
+	profile.Timezone = req.Timezone
+	profile.Language = req.Language
 
 	if err := db.UpdateUserProfile(profile); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

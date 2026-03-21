@@ -249,39 +249,6 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 	return a.llm.Generate(ctx, b.String())
 }
 
-func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error) {
-	h, err := a.history(contactID)
-	if err != nil {
-		return "", err
-	}
-
-	messages := h.GetSince(time.Now().AddDate(0, -1, 0))
-	if len(messages) == 0 {
-		messages = h.GetRecent(100)
-	}
-	if len(messages) == 0 {
-		return "", ErrNoMessages
-	}
-
-	var mine []string
-	for _, m := range messages {
-		if m.IsFromMe && m.Type == messenger.TypeText && m.Content != "" {
-			mine = append(mine, m.Content)
-		}
-	}
-
-	if len(mine) == 0 {
-		return "", ErrNoUserMessages
-	}
-
-	prompt := fmt.Sprintf(`Analyze these messages written by a user and describe their communication style:
-%s
-
-Describe the style in 2-3 sentences focusing on: tone, formality, emoji usage, message length, and any unique patterns.`, strings.Join(mine, "\n"))
-
-	return a.llm.Generate(ctx, prompt)
-}
-
 func (a *Agent) CheckResponse(contactID string, within time.Duration) (ResponseCheck, error) {
 	c, ok := a.contacts.Get(contactID)
 	if !ok || !c.Enabled {

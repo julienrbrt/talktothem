@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/glebarez/sqlite"
 	"github.com/julienrbrt/talktothem/internal/messenger"
@@ -25,6 +26,9 @@ type UserProfile struct {
 	FamilyContext string `gorm:"type:text"`
 	WorkContext   string `gorm:"type:text"`
 	WritingStyle  string `gorm:"type:text"`
+	Location      string
+	Timezone      string
+	Language      string
 }
 
 type MessengerConfig struct {
@@ -152,4 +156,60 @@ func PrefillProfileFromMessenger(ctx context.Context, msgr messenger.Messenger, 
 	}
 
 	return UpdateUserProfile(existing)
+}
+
+func UpdateLearnedFields(location, timezone, language string) error {
+	existing := GetUserProfile()
+	updated := false
+
+	if existing.Location == "" && location != "" {
+		existing.Location = location
+		updated = true
+	}
+	if existing.Timezone == "" && timezone != "" {
+		existing.Timezone = timezone
+		updated = true
+	}
+	if existing.Language == "" && language != "" {
+		existing.Language = language
+		updated = true
+	}
+
+	if !updated {
+		return nil
+	}
+
+	return UpdateUserProfile(existing)
+}
+
+func PhoneRegionHint(phone string) string {
+	phone = strings.TrimPrefix(phone, "+")
+	regions := map[string]string{
+		"1":   "United States / Canada",
+		"44":  "United Kingdom",
+		"49":  "Germany",
+		"39":  "Italy",
+		"34":  "Spain",
+		"55":  "Brazil",
+		"91":  "India",
+		"81":  "Japan",
+		"86":  "China",
+		"61":  "Australia",
+		"33":  "France",
+		"41":  "Switzerland",
+		"32":  "Belgium",
+		"31":  "Netherlands",
+		"46":  "Sweden",
+		"47":  "Norway",
+		"45":  "Denmark",
+		"351": "Portugal",
+		"358": "Finland",
+	}
+
+	for prefix, region := range regions {
+		if strings.HasPrefix(phone, prefix) {
+			return region
+		}
+	}
+	return ""
 }

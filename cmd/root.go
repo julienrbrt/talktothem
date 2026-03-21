@@ -189,7 +189,9 @@ func runServe(cmd *cobra.Command, args []string) error {
 		go ag.Run(ctx, inbox)
 	}
 
-	server := api.NewServer(ctx, addr, ag, contacts, msgrs, cfg, nil)
+	go ag.LearnFromMessengers(ctx)
+
+	server := api.NewServer(ctx, addr, ag, contacts, msgrs, cfg)
 
 	// This needs to be after server is created so we can broadcast
 	for _, m := range msgrs {
