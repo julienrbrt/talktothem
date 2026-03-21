@@ -208,7 +208,7 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 				break
 			}
 
-			msgs, err := msgr.GetConversation(ctx, c.ID, 200)
+			msgs, err := msgr.GetConversation(ctx, c.ID, 100)
 			if err != nil {
 				continue
 			}

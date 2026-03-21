@@ -19,6 +19,7 @@ import (
 var _ messenger.Messenger = &Client{}
 
 const deviceID = "talktothem"
+const maxMessageLimit = 100
 
 type Client struct {
 	baseURL   string
@@ -417,7 +418,15 @@ func (c *Client) GetConversation(ctx context.Context, contactID string, limit in
 		chatJID = contactID + "@s.whatsapp.net"
 	}
 
-	req, err := c.newRequest(http.MethodGet, fmt.Sprintf("/chat/%s/messages?limit=%d", chatJID, limit), nil)
+	endpoint := fmt.Sprintf("/chat/%s/messages", chatJID)
+	if limit > maxMessageLimit {
+		limit = maxMessageLimit
+	}
+	if limit > 0 {
+		endpoint = fmt.Sprintf("%s?limit=%d", endpoint, limit)
+	}
+
+	req, err := c.newRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get conversation: %w", err)
 	}

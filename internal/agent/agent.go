@@ -128,6 +128,30 @@ func (a *Agent) SyncHistory(ctx context.Context, m messenger.Messenger, contactI
 	return h.Sync(ctx, m, contactID)
 }
 
+func (a *Agent) SyncAllHistory(ctx context.Context, messengerName string) (int, error) {
+	msgr, ok := a.messengers[messengerName]
+	if !ok || msgr == nil || !msgr.IsConnected() {
+		return 0, nil
+	}
+
+	contacts := a.contacts.List()
+	synced := 0
+
+	for _, c := range contacts {
+		if c.Messenger != messengerName {
+			continue
+		}
+		if err := a.SyncHistory(ctx, msgr, c.ID); err != nil {
+			slog.Warn("Failed to sync history for contact", "contact", c.Name, "error", err)
+			continue
+		}
+		synced++
+		slog.Info("Synced history for contact", "contact", c.Name, "messenger", messengerName)
+	}
+
+	return synced, nil
+}
+
 func (a *Agent) Respond(ctx context.Context, msg messenger.Message) (string, error) {
 	c, ok := a.contacts.Get(msg.ContactID)
 	if !ok {

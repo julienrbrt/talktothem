@@ -23,7 +23,8 @@ func (h *History) Add(msg messenger.Message) error {
 	if msg.ID == "" {
 		msg.ID = uuid.New().String()
 	}
-	return db.DB.Create(toDBMsg(msg, h.contactID)).Error
+	dbMsg := toDBMsg(msg, h.contactID)
+	return db.DB.Where("id = ?", dbMsg.ID).FirstOrCreate(dbMsg).Error
 }
 
 func (h *History) GetRecent(limit int) []messenger.Message {
@@ -96,7 +97,7 @@ func toMessengerMsg(m db.Message) messenger.Message {
 }
 
 func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID string) error {
-	msgs, err := m.GetConversation(ctx, contactID, 0)
+	msgs, err := m.GetConversation(ctx, contactID, 100)
 	if err != nil {
 		return err
 	}

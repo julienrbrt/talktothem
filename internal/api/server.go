@@ -1081,6 +1081,15 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 		if imported > 0 {
 			slog.Info("Imported contacts after onboarding", "messenger", req.Type, "count", imported)
 		}
+
+		if s.agent != nil {
+			synced, err := s.agent.SyncAllHistory(ctx, req.Type)
+			if err != nil {
+				slog.Warn("Failed to sync all history after onboarding", "messenger", req.Type, "error", err)
+			} else if synced > 0 {
+				slog.Info("Synced history after onboarding", "messenger", req.Type, "count", synced)
+			}
+		}
 	}()
 
 	writeJSON(w, map[string]bool{"success": true})
