@@ -135,9 +135,9 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 		return "", err
 	}
 
-	messages := h.GetSince(time.Now().AddDate(0, -1, 0))
+	messages := h.GetSince(time.Now().AddDate(0, -3, 0))
 	if len(messages) == 0 {
-		messages = h.GetRecent(100)
+		messages = h.GetRecent(500)
 	}
 	if len(messages) == 0 {
 		return "", ErrNoMessages
@@ -184,11 +184,11 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 		}
 
 		for _, c := range contacts {
-			if len(allMessages) > 200 {
+			if len(allMessages) > 1000 {
 				break
 			}
 
-			msgs, err := msgr.GetConversation(ctx, c.ID, 20)
+			msgs, err := msgr.GetConversation(ctx, c.ID, 200)
 			if err != nil {
 				continue
 			}
@@ -200,7 +200,7 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 			}
 		}
 
-		if len(allMessages) > 200 {
+		if len(allMessages) > 1000 {
 			break
 		}
 	}
@@ -214,8 +214,8 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 		return allMessages[i].Timestamp.After(allMessages[j].Timestamp)
 	})
 
-	if len(allMessages) > 100 {
-		allMessages = allMessages[:100]
+	if len(allMessages) > 500 {
+		allMessages = allMessages[:500]
 	}
 
 	var texts []string
