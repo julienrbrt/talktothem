@@ -412,6 +412,7 @@
                             </div>
                             <div class="space-y-2 flex flex-col justify-end">
                                 <button
+                                    id="finish-btn"
                                     onclick="finishOnboarding()"
                                     class="w-full bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
                                 >
@@ -571,6 +572,9 @@
     }
 
     async function finishOnboarding() {
+        const btn = document.getElementById('finish-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>';
         const data = {
             apiKey: document.getElementById('api-key').value,
             model: document.getElementById('api-model').value,

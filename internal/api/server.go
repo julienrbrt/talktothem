@@ -1078,19 +1078,16 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	go func() {
-		ctx := context.Background()
+	ctx := context.Background()
+	imported, err := s.contacts.ImportFromMessenger(ctx, msgr, req.Type)
+	if err != nil {
+		slog.Warn("Failed to import contacts after onboarding", "messenger", req.Type, "error", err)
+	} else if imported > 0 {
+		slog.Info("Imported contacts after onboarding", "messenger", req.Type, "count", imported)
+	}
 
-		imported, err := s.contacts.ImportFromMessenger(ctx, msgr, req.Type)
-		if err != nil {
-			slog.Warn("Failed to import contacts after onboarding", "messenger", req.Type, "error", err)
-			return
-		}
-		if imported > 0 {
-			slog.Info("Imported contacts after onboarding", "messenger", req.Type, "count", imported)
-		}
-
-		if s.agent != nil {
+	if s.agent != nil {
+		go func() {
 			synced, err := s.agent.SyncAllHistory(ctx, req.Type)
 			if err != nil {
 				slog.Warn("Failed to sync all history after onboarding", "messenger", req.Type, "error", err)
@@ -1115,8 +1112,8 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 					slog.Warn("Failed to save learned style", "contact", c.Name, "error", err)
 				}
 			}
-		}
-	}()
+		}()
+	}
 
 	writeJSON(w, map[string]bool{"success": true})
 }
