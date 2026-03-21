@@ -16,17 +16,36 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  whatsapp-api:
+    image: ghcr.io/aldinokemal/go-whatsapp-web-multidevice
+    container_name: whatsapp-api
+    command: ["rest"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data/whatsapp:/app/storages:z
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
   talktothem:
     build: .
     container_name: talktothem
     depends_on:
       signal-api:
         condition: service_healthy
+      whatsapp-api:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       - TALKTOTHEM_DATA_PATH=/app/data
       - SIGNAL_API_URL=http://signal-api:8080
+      - WHATSAPP_API_URL=http://whatsapp-api:3000
     volumes:
       - ./data:/app/data:z
     command: ["serve", "--addr", ":8080"]

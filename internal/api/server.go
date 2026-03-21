@@ -902,6 +902,7 @@ type StatusResponse struct {
 }
 
 type MessengerStatus struct {
+	Available bool   `json:"available"`
 	Enabled   bool   `json:"enabled"`
 	Phone     string `json:"phone,omitempty"`
 	Connected bool   `json:"connected,omitempty"`
@@ -923,12 +924,12 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 	hasAnyMessengerLinked := false
 	hasMessengerConnected := false
 
-	// Gather all known messenger types
 	for _, t := range messenger.Supported {
 		cfg := db.GetMessengerConfig(t)
 		msgr := s.messengers[t]
 
-		status := MessengerStatus{}
+		status := MessengerStatus{Available: msgr != nil}
+
 		if cfg != nil {
 			status.Enabled = cfg.Enabled
 			if cfg.Enabled {
@@ -936,11 +937,9 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		isLinked := false
 		if msgr != nil {
 			linked, number, err := msgr.IsLinked(r.Context())
 			if err == nil && linked {
-				isLinked = true
 				hasAnyMessengerLinked = true
 				if number != "" {
 					status.Phone = number
@@ -949,11 +948,9 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 			status.Connected = msgr.IsConnected()
 		}
 
-		if status.Enabled || status.Connected || isLinked {
-			messengers[t] = status
-			if status.Connected {
-				hasMessengerConnected = true
-			}
+		messengers[t] = status
+		if status.Connected {
+			hasMessengerConnected = true
 		}
 	}
 

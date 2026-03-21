@@ -19,19 +19,7 @@
             onclick="closeSidebar()"
             class="md:hidden p-2 hover:bg-gray-50 rounded-lg"
         >
-            <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                ></path>
-            </svg>
+            {{template "icon-close"}}
         </button>
     </div>
 
@@ -60,44 +48,14 @@
                 href="/profile"
                 class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-colors text-xs font-bold uppercase tracking-wider"
             >
-                <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    ></path>
-                </svg>
+                {{template "icon-user"}}
                 Profile
             </a>
             <a
                 href="/settings"
                 class="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 text-gray-500 hover:bg-gray-50 rounded-xl transition-colors text-xs font-bold uppercase tracking-wider"
             >
-                <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                    ></path>
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    ></path>
-                </svg>
+                {{template "icon-edit"}}
                 Settings
             </a>
         </div>
@@ -139,19 +97,7 @@
                     <div
                         class="p-2 md:p-3 bg-purple-50 text-purple-600 rounded-xl md:rounded-2xl flex-shrink-0"
                     >
-                        <svg
-                            class="w-5 h-5 md:w-6 md:h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M13 10V3L4 14h7v7l9-11h-7z"
-                            ></path>
-                        </svg>
+                        {{template "icon-style"}}
                     </div>
                     <div class="min-w-0">
                         <p
@@ -172,19 +118,7 @@
                     <div
                         class="p-2 md:p-3 bg-blue-50 text-blue-600 rounded-xl md:rounded-2xl flex-shrink-0"
                     >
-                        <svg
-                            class="w-5 h-5 md:w-6 md:h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                            ></path>
-                        </svg>
+                        <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                     </div>
                     <div class="min-w-0">
                         <p
@@ -242,19 +176,7 @@
                     <div
                         class="w-12 h-12 md:w-16 md:h-16 bg-gray-50 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 border border-gray-100"
                     >
-                        <svg
-                            class="w-6 h-6 md:w-8 md:h-8 text-gray-200"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                            ></path>
-                        </svg>
+                        {{template "icon-chat"}}
                     </div>
                     <p
                         class="text-gray-400 font-bold text-[10px] md:text-xs uppercase tracking-widest"
@@ -273,182 +195,205 @@
     </div>
 </div>
 {{end}} {{define "onboarding"}}
-<div
-    class="min-h-screen bg-black flex items-center justify-center p-4 md:p-6 overflow-hidden relative"
->
-    <div
-        class="absolute inset-0 opacity-20"
-        style="
-            background-image: radial-gradient(#6d28d9 1px, transparent 1px);
-            background-size: 32px 32px;
-        "
-    ></div>
-
-    <div
-        class="max-w-xl w-full bg-[#111111] border border-white/10 rounded-[24px] md:rounded-[40px] p-6 md:p-12 shadow-2xl relative z-10"
-    >
-        <div class="flex items-center gap-2 md:gap-3 mb-6 md:mb-12">
-            <div
-                class="w-8 h-8 md:w-10 md:h-10 bg-white rounded-xl flex items-center justify-center"
-            >
-                <svg
-                    class="w-5 h-5 md:w-6 md:h-6 text-black"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+<div class="flex-1 overflow-y-auto p-4 md:p-10 bg-[#fafafa]">
+    <div class="max-w-xl mx-auto">
+        <header class="mb-8 md:mb-12">
+            <div class="flex items-center gap-2 md:gap-3 mb-2">
+                <img
+                    src="/static/favicon.svg"
+                    class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0"
+                    alt="TalkToThem"
+                />
+                <h1
+                    class="text-lg md:text-xl font-black text-gray-900 tracking-tight"
                 >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2.5"
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                    ></path>
-                </svg>
+                    TalkToThem<span class="text-purple-600">.</span>
+                </h1>
             </div>
-            <h1
-                class="text-xl md:text-2xl font-black tracking-tight text-white uppercase"
-            >
-                TalkToThem<span class="text-purple-600">.</span>
-            </h1>
-        </div>
+            <p class="text-gray-500 font-medium text-sm md:text-base">
+                Get started in two steps.
+            </p>
+        </header>
 
         <div id="onboarding-steps">
-            <div id="step-link" class="space-y-8">
-                <div>
-                    <h2
-                        class="text-4xl font-black text-white tracking-tighter leading-none mb-4"
-                    >
-                        Connect<br />Signal<span class="text-purple-600"
-                            >.</span
-                        >
-                    </h2>
-                    <p class="text-gray-400 font-medium leading-relaxed">
-                        Scan the QR code to link your Signal account and start
-                        messaging.
-                    </p>
-                </div>
-
+            <div id="step-loading" class="flex justify-center py-16">
                 <div
-                    id="qr-container"
-                    class="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col items-center justify-center min-h-[300px] group transition-all hover:bg-white/[0.07]"
-                >
-                    <button
-                        onclick="startLinking()"
-                        id="link-btn"
-                        class="px-8 py-4 bg-white text-black font-black uppercase text-xs tracking-[0.2em] rounded-2xl hover:scale-105 transition-all shadow-xl shadow-white/5"
-                    >
-                        Generate QR Code
-                    </button>
-                    <div id="link-status" class="hidden mt-6 text-center">
-                        <div
-                            class="animate-pulse text-purple-400 font-black uppercase text-[10px] tracking-widest mb-2"
-                        >
-                            Waiting for scan...
-                        </div>
-                        <p class="text-gray-500 text-xs font-medium">
-                            Open Signal on your phone
-                        </p>
-                    </div>
-                </div>
+                    class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"
+                ></div>
+            </div>
 
-                <div
-                    id="link-success"
-                    class="hidden bg-green-500/10 border border-green-500/20 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-center gap-3 md:gap-4"
-                >
+            <div id="step-none" class="hidden">
+                <div class="bento-card p-6 md:p-10 bg-white text-center">
                     <div
-                        class="w-8 h-8 md:w-10 md:h-10 bg-green-500 rounded-full flex items-center justify-center text-black"
+                        class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-200"
                     >
-                        <svg
-                            class="w-5 h-5 md:w-6 md:h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="3"
-                                d="M5 13l4 4L19 7"
-                            ></path>
-                        </svg>
+                        {{template "icon-style"}}
                     </div>
-                    <div>
-                        <p
-                            class="text-green-500 font-black uppercase text-[9px] md:text-[10px] tracking-widest"
+                    <h3
+                        class="text-base md:text-lg font-black text-gray-900 tracking-tight mb-1"
+                    >
+                        No Messengers Available
+                    </h3>
+                    <p class="text-sm text-gray-400 font-medium max-w-sm mx-auto">
+                        Set
+                        <code
+                            class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            >SIGNAL_API_URL</code
                         >
-                            Signal Connected
-                        </p>
-                        <p
-                            class="text-white font-bold text-xs md:text-sm"
-                            id="linked-number"
-                        ></p>
-                    </div>
+                        or
+                        <code
+                            class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            >WHATSAPP_API_URL</code
+                        >
+                        and restart.
+                    </p>
                 </div>
             </div>
 
-            <div
-                id="step-config"
-                class="hidden mt-8 md:mt-12 space-y-6 md:space-y-8"
-            >
-                <div class="h-px bg-white/10 w-full"></div>
-                <div>
-                    <h2
-                        class="text-2xl md:text-3xl font-black text-white tracking-tighter leading-none mb-2 md:mb-3"
+            <div id="step-link" class="hidden space-y-4 md:space-y-8">
+                <div class="bento-card p-4 md:p-8 bg-white">
+                    <div class="mb-4 md:mb-8">
+                        <h3
+                            class="text-lg md:text-xl font-black text-gray-900 tracking-tight"
+                        >
+                            Step 1: Connect Messenger<span
+                                class="text-purple-600"
+                                >.</span
+                            >
+                        </h3>
+                        <p class="text-sm text-gray-400 font-medium">
+                            Choose a platform and scan the QR code to link your
+                            account.
+                        </p>
+                    </div>
+
+                    <div
+                        id="messenger-selector"
+                        class="flex gap-3 mb-6 md:mb-8"
+                    ></div>
+
+                    <div
+                        id="qr-container"
+                        class="bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl p-6 md:p-10 flex flex-col items-center justify-center min-h-[280px]"
                     >
-                        Configure<br />AI<span class="text-purple-600">.</span>
-                    </h2>
-                    <p class="text-gray-400 text-xs md:text-sm font-medium">
-                        Enter your OpenAI API key to enable AI-powered
-                        responses.
-                    </p>
+                        <button
+                            onclick="startLinking()"
+                            id="link-btn"
+                            class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
+                        >
+                            Generate QR Code
+                        </button>
+                        <div
+                            id="link-status"
+                            class="hidden mt-6 text-center"
+                        >
+                            <div
+                                class="animate-pulse text-purple-600 font-black uppercase text-[10px] tracking-widest mb-1"
+                            >
+                                Protocol Active
+                            </div>
+                            <p
+                                class="text-gray-400 text-xs font-bold uppercase tracking-widest"
+                            >
+                                Open
+                                <span id="link-app-name"></span> on your
+                                phone
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        id="link-success"
+                        class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-xl md:rounded-2xl flex items-center gap-3 md:gap-4"
+                    >
+                        <div
+                            class="w-8 h-8 md:w-10 md:h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0"
+                        >
+                            {{template "icon-check"}}
+                        </div>
+                        <div>
+                            <p
+                                class="text-green-600 font-black uppercase text-[9px] md:text-[10px] tracking-widest"
+                            >
+                                <span id="linked-messenger-name"></span>
+                                Connected
+                            </p>
+                            <p
+                                class="text-gray-900 font-bold text-xs md:text-sm"
+                                id="linked-number"
+                            ></p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="space-y-3 md:space-y-4">
-                    <div class="space-y-2">
-                        <label
-                            class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1"
-                            >Access Token</label
+                <div
+                    id="step-config"
+                    class="hidden bento-card p-4 md:p-8 bg-white"
+                >
+                    <div class="mb-4 md:mb-8">
+                        <h3
+                            class="text-lg md:text-xl font-black text-gray-900 tracking-tight"
                         >
-                        <input
-                            type="password"
-                            id="api-key"
-                            placeholder="sk-..."
-                            class="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold tracking-wider text-sm"
-                        />
+                            Step 2: Configure AI<span
+                                class="text-purple-600"
+                                >.</span
+                            >
+                        </h3>
+                        <p class="text-sm text-gray-400 font-medium">
+                            Enter your OpenAI API key to enable AI-powered
+                            responses.
+                        </p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+
+                    <div class="space-y-4 md:space-y-6">
                         <div class="space-y-2">
                             <label
-                                class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1"
-                                >AI Model</label
+                                class="text-xs font-semibold text-gray-500 ml-1"
+                                >Access Token</label
+                            >
+                            <input
+                                type="password"
+                                id="api-key"
+                                placeholder="sk-..."
+                                class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-bold"
+                            />
+                        </div>
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                        >
+                            <div class="space-y-2">
+                                <label
+                                    class="text-xs font-semibold text-gray-500 ml-1"
+                                    >AI Model</label
+                                >
+                                <input
+                                    type="text"
+                                    id="api-model"
+                                    value="gpt-4o"
+                                    class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-bold"
+                                />
+                            </div>
+                            <div class="space-y-2 flex flex-col justify-end">
+                                <button
+                                    onclick="finishOnboarding()"
+                                    class="w-full bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
+                                >
+                                    Complete Setup
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                class="text-xs font-semibold text-gray-500 ml-1"
+                                >Endpoint URL (Optional)</label
                             >
                             <input
                                 type="text"
-                                id="api-model"
-                                value="gpt-4o"
-                                class="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-bold text-sm"
+                                id="api-base"
+                                placeholder="https://api.openai.com/v1"
+                                class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all"
                             />
                         </div>
-                        <div class="space-y-2 flex flex-col justify-end">
-                            <button
-                                onclick="finishOnboarding()"
-                                class="w-full bg-purple-600 text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-purple-500 transition-all shadow-2xl shadow-purple-600/20 active:scale-[0.98]"
-                            >
-                                Complete Setup
-                            </button>
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <label
-                            class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1"
-                            >API URL (Optional)</label
-                        >
-                        <input
-                            type="text"
-                            id="api-base"
-                            placeholder="https://api.openai.com/v1"
-                            class="w-full bg-white/5 border border-white/10 rounded-xl md:rounded-2xl px-4 md:px-6 py-3 md:py-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all text-sm"
-                        />
                     </div>
                 </div>
             </div>
@@ -457,29 +402,100 @@
 </div>
 
 <script>
-    async function startLinking() {
-        const btn = document.getElementById("link-btn");
-        const container = document.getElementById("qr-container");
+    const MESSENGER_META = {
+        signal: {
+            label: 'Signal',
+            color: '#3a76f0',
+            icon: '<svg class="w-6 h-6 mx-auto mb-2"><use href="/static/icons.svg#icon-signal"/></svg>',
+        },
+        whatsapp: {
+            label: 'WhatsApp',
+            color: '#25D366',
+            icon: '<svg class="w-6 h-6 mx-auto mb-2"><use href="/static/icons.svg#icon-whatsapp"/></svg>',
+        },
+    };
 
-        btn.innerHTML =
-            '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>';
+    let availableMessengers = [];
+    let selectedMessenger = null;
 
+    (async function initOnboarding() {
         try {
-            const response = await fetch("/api/messenger/signal/link/start");
+            const response = await fetch('/api/status');
             const data = await response.json();
 
-            container.innerHTML = `
-            <div class="bg-white p-3 rounded-[32px] shadow-2xl">
-                <img src="data:image/png;base64,${data.qrCode}" class="w-64 h-64 rounded-[20px]">
-            </div>
-            <div id="link-status" class="mt-8 text-center">
-                <div class="animate-pulse text-purple-400 font-black uppercase text-[10px] tracking-[0.3em] mb-2">Protocol Active</div>
-                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Waiting for scan</p>
-            </div>
-        `;
+            availableMessengers = Object.entries(data.messengers || {})
+                .filter(([, s]) => s.available)
+                .map(([type]) => type);
+
+            document.getElementById('step-loading').classList.add('hidden');
+
+            if (availableMessengers.length === 0) {
+                document.getElementById('step-none').classList.remove('hidden');
+                return;
+            }
+
+            selectedMessenger = availableMessengers[0];
+            renderMessengerSelector();
+            document.getElementById('step-link').classList.remove('hidden');
+        } catch (e) {
+            document.getElementById('step-loading').innerHTML = '<p class="text-red-500 font-bold text-center text-sm">Failed to load messenger status</p>';
+        }
+    })();
+
+    function renderMessengerSelector() {
+        const container = document.getElementById('messenger-selector');
+        container.innerHTML = availableMessengers.map(type => {
+            const meta = MESSENGER_META[type] || { label: type, icon: '', color: '#999' };
+            const isActive = type === selectedMessenger;
+            const activeClasses = 'flex-1 p-4 rounded-xl md:rounded-2xl border-2 bg-gray-50 text-gray-900';
+            const inactiveClasses = 'flex-1 p-4 rounded-xl md:rounded-2xl border-2 border-gray-100 bg-white text-gray-400 hover:border-gray-200';
+            const activeStyle = isActive ? `border-color: ${meta.color};` : '';
+            return `<button onclick="selectMessenger('${type}')" class="${isActive ? activeClasses : inactiveClasses} font-black uppercase text-xs tracking-widest transition-all" style="${activeStyle}">${meta.icon}${meta.label}</button>`;
+        }).join('');
+        document.getElementById('link-app-name').textContent = MESSENGER_META[selectedMessenger]?.label || selectedMessenger;
+    }
+
+    function selectMessenger(type) {
+        selectedMessenger = type;
+        renderMessengerSelector();
+        const container = document.getElementById('qr-container');
+        const linkStatus = document.getElementById('link-status');
+        if (linkStatus) linkStatus.classList.add('hidden');
+        container.innerHTML = '<button onclick="startLinking()" id="link-btn" class="px-8 py-3 bg-black text-white font-black uppercase text-[11px] tracking-[0.15em] rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200">Generate QR Code</button>';
+        document.getElementById('link-success').classList.add('hidden');
+    }
+
+    async function startLinking() {
+        const btn = document.getElementById('link-btn');
+        const container = document.getElementById('qr-container');
+        btn.innerHTML = '<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>';
+
+        try {
+            const response = await fetch(`/api/messenger/${selectedMessenger}/link/start`);
+            if (!response.ok) {
+                let errMsg = 'Failed to generate QR';
+                try { const err = await response.json(); errMsg = err.error || errMsg; } catch(e) {}
+                container.innerHTML = `<button onclick="startLinking()" class="px-8 py-3 bg-gray-100 text-gray-500 font-black uppercase text-[11px] tracking-[0.15em] rounded-xl transition-all">${errMsg} — Retry</button>`;
+                return;
+            }
+            const data = await response.json();
+
+            if (data.qrCode) {
+                container.innerHTML = `
+                <div class="bg-white p-2 md:p-3 rounded-2xl shadow-lg border border-gray-100">
+                    <img src="data:image/png;base64,${data.qrCode}" class="w-56 h-56 md:w-64 md:h-64 rounded-xl">
+                </div>
+                <div id="link-status" class="mt-6 text-center">
+                    <div class="animate-pulse text-purple-600 font-black uppercase text-[10px] tracking-widest mb-1">Protocol Active</div>
+                    <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Waiting for scan</p>
+                </div>`;
+            } else {
+                container.innerHTML = '<p class="text-red-500 font-bold text-sm text-center">Invalid QR response</p>';
+                return;
+            }
             startLinkPolling();
         } catch (e) {
-            btn.textContent = "Retry Generation";
+            container.innerHTML = '<button onclick="startLinking()" class="px-8 py-3 bg-gray-100 text-gray-500 font-black uppercase text-[11px] tracking-[0.15em] rounded-xl transition-all">Retry Generation</button>';
         }
     }
 
@@ -488,19 +504,13 @@
         const poll = async () => {
             if (attempts >= 120) return;
             try {
-                const response = await fetch(
-                    "/api/messenger/signal/link/status",
-                );
+                const response = await fetch(`/api/messenger/${selectedMessenger}/link/status`);
                 const data = await response.json();
                 if (data.linked) {
-                    document
-                        .getElementById("link-success")
-                        .classList.remove("hidden");
-                    document.getElementById("linked-number").textContent =
-                        data.number;
-                    document
-                        .getElementById("step-config")
-                        .classList.remove("hidden");
+                    document.getElementById('link-success').classList.remove('hidden');
+                    document.getElementById('linked-number').textContent = data.number;
+                    document.getElementById('linked-messenger-name').textContent = MESSENGER_META[selectedMessenger]?.label || selectedMessenger;
+                    document.getElementById('step-config').classList.remove('hidden');
                     return;
                 }
             } catch (e) {}
@@ -512,18 +522,15 @@
 
     async function finishOnboarding() {
         const data = {
-            apiKey: document.getElementById("api-key").value,
-            model: document.getElementById("api-model").value,
-            baseUrl: document.getElementById("api-base").value,
-            type: "signal",
+            apiKey: document.getElementById('api-key').value,
+            model: document.getElementById('api-model').value,
+            baseUrl: document.getElementById('api-base').value,
+            type: selectedMessenger,
         };
-
         try {
-            const response = await fetch("/api/onboarding", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
+            const response = await fetch('/api/onboarding', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams(data),
             });
             if (response.ok) location.reload();
@@ -550,19 +557,7 @@
                 onclick="closeAddContactModal()"
                 class="text-gray-300 hover:text-gray-900 transition-colors p-1"
             >
-                <svg
-                    class="w-5 h-5 md:w-6 md:h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2.5"
-                        d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                </svg>
+                {{template "icon-close"}}
             </button>
         </div>
         <form
@@ -669,19 +664,7 @@
                 onclick="closeActivateModal()"
                 class="text-gray-300 hover:text-gray-900 transition-colors p-1"
             >
-                <svg
-                    class="w-5 h-5 md:w-6 md:h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2.5"
-                        d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                </svg>
+                {{template "icon-close"}}
             </button>
         </div>
         <div class="p-4 md:p-6 bg-gray-50/50">

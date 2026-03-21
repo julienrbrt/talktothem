@@ -17,6 +17,7 @@ import (
 	"github.com/julienrbrt/talktothem/internal/llm"
 	"github.com/julienrbrt/talktothem/internal/messenger"
 	signalcli "github.com/julienrbrt/talktothem/internal/messenger/signal"
+	whatsappcli "github.com/julienrbrt/talktothem/internal/messenger/whatsapp"
 	"github.com/lmittmann/tint"
 	"github.com/spf13/cobra"
 )
@@ -110,6 +111,18 @@ func runServe(cmd *cobra.Command, args []string) error {
 	// Add Signal
 	signalMsgr := signalcli.NewWithoutNumber(signalAPIURL)
 	msgrs[signalMsgr.Name()] = signalMsgr
+
+	// Add WhatsApp (uses go-whatsapp-web-multidevice API)
+	whatsappAPIURL := os.Getenv("WHATSAPP_API_URL")
+	if whatsappAPIURL == "" {
+		whatsappAPIURL = "http://localhost:3000"
+	}
+	whatsappMsgr, err := whatsappcli.New(dataPath, whatsappAPIURL)
+	if err != nil {
+		slog.Warn("Failed to initialize WhatsApp messenger", "error", err)
+	} else {
+		msgrs[whatsappMsgr.Name()] = whatsappMsgr
+	}
 
 	for name, m := range msgrs {
 		// Check if messenger device is already linked and sync to DB

@@ -13,91 +13,13 @@
         </header>
 
         <div class="space-y-4 md:space-y-8">
-            <section class="bento-card p-4 md:p-8 bg-white">
-                <div
-                    class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-8 gap-3"
-                >
-                    <div>
-                        <h3
-                            class="text-lg md:text-xl font-black text-gray-900 tracking-tight"
-                        >
-                            Signal Protocol
-                        </h3>
-                        <p class="text-sm text-gray-400 font-medium">
-                            Secondary device linking via Signal-CLI.
-                        </p>
-                    </div>
-                    <div id="signal-status" class="flex items-center gap-3">
-                        <div
-                            id="signal-dot"
-                            class="w-2.5 h-2.5 rounded-full bg-gray-300"
-                        ></div>
-                        <span
-                            id="signal-text"
-                            class="text-xs font-semibold text-gray-500"
-                            >Idle</span
-                        >
-                    </div>
-                </div>
-
-                <div
-                    class="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100 gap-3"
-                >
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm flex-shrink-0"
-                        >
-                            <svg
-                                class="w-6 h-6 text-[#3a76f0]"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    d="M12 2C6.477 2 2 6.477 2 12c0 1.891.526 3.658 1.438 5.161L2.121 21.879l4.718-1.317C8.342 21.474 10.109 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.636 0-3.167-.442-4.484-1.213l-.321-.188-2.828.789.789-2.828-.188-.321C4.442 15.167 4 13.636 4 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <p
-                                id="signal-number"
-                                class="text-sm font-bold text-gray-900 leading-none"
-                            >
-                                Not Linked
-                            </p>
-                            <p class="text-xs font-semibold text-gray-500 mt-1">
-                                <span id="signal-status-label">Offline</span>
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        id="signal-relink-btn"
-                        onclick="showRelinkQR()"
-                        class="hidden bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 md:py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 flex-shrink-0"
-                    >
-                        Link Device
-                    </button>
-                </div>
-
-                <div
-                    id="relink-container"
-                    class="hidden mt-8 pt-8 border-t border-gray-50"
-                >
+            <div id="messenger-sections">
+                <div class="flex justify-center py-12">
                     <div
-                        class="text-center bg-gray-50 p-8 rounded-[32px] border border-dashed border-gray-200"
-                    >
-                        <p
-                            class="text-xs font-bold text-gray-500 mb-6 uppercase tracking-widest"
-                        >
-                            Scan to synchronize
-                        </p>
-                        <div id="relink-qr" class="flex flex-col items-center">
-                            <div
-                                class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"
-                            ></div>
-                        </div>
-                    </div>
+                        class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"
+                    ></div>
                 </div>
-            </section>
+            </div>
 
             <section class="bento-card p-4 md:p-8 bg-white">
                 <div class="mb-4 md:mb-8">
@@ -118,19 +40,7 @@
                         <div
                             class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm flex-shrink-0"
                         >
-                            <svg
-                                class="w-6 h-6 text-gray-700"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                ></path>
-                            </svg>
+                            {{template "icon-users"}}
                         </div>
                         <div class="min-w-0">
                             <p
@@ -215,19 +125,7 @@
                             <div
                                 class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-purple-100 flex-shrink-0"
                             >
-                                <svg
-                                    class="w-5 h-5 text-purple-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2.5"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    ></path>
-                                </svg>
+                                {{template "icon-clock"}}
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-gray-900">
@@ -289,19 +187,7 @@
                             <div
                                 class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm flex-shrink-0 group-hover:border-purple-200 transition-colors"
                             >
-                                <svg
-                                    class="w-5 h-5 text-gray-700 group-hover:text-purple-600 transition-colors"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
-                                    ></path>
-                                </svg>
+                                {{template "icon-globe"}}
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-gray-900">
@@ -337,15 +223,7 @@
                             <div
                                 class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm flex-shrink-0 group-hover:border-purple-200 transition-colors"
                             >
-                                <svg
-                                    class="w-5 h-5 text-gray-700 group-hover:text-purple-600 transition-colors"
-                                    fill="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"
-                                    ></path>
-                                </svg>
+                                {{template "icon-github"}}
                             </div>
                             <div class="min-w-0">
                                 <p class="text-sm font-bold text-gray-900">
@@ -377,194 +255,170 @@
 </div>
 
 <script>
-    (function () {
-        window.loadSignalStatus = async function () {
-            const dot = document.getElementById("signal-dot");
-            const text = document.getElementById("signal-text");
-            const label = document.getElementById("signal-status-label");
-            const number = document.getElementById("signal-number");
-            const relinkBtn = document.getElementById("signal-relink-btn");
+    const MESSENGER_META = {
+        signal: {
+            label: "Signal",
+            description: "Linking a new device on Signal.",
+            color: "#3a76f0",
+            icon: '<svg class="w-6 h-6 text-[#3a76f0]"><use href="/static/icons.svg#icon-signal"/></svg>',
+        },
+        whatsapp: {
+            label: "WhatsApp",
+            description: "Connect via WhatsApp Web",
+            color: "#25D366",
+            icon: '<svg class="w-6 h-6 text-[#25D366]"><use href="/static/icons.svg#icon-whatsapp"/></svg>',
+        },
+    };
 
-            try {
-                const response = await fetch("/api/status");
-                const data = await response.json();
+    (async function () {
+        let statusData = null;
+        try {
+            const res = await fetch("/api/status");
+            statusData = await res.json();
+        } catch (e) {
+            console.error(e);
+            return;
+        }
 
-                if (
-                    data.connectionStatus === "connected" &&
-                    data.messengers.signal?.connected
-                ) {
-                    dot.className =
+        const available = Object.entries(statusData.messengers || {}).filter(
+            ([, s]) => s.available,
+        );
+
+        const container = document.getElementById("messenger-sections");
+
+        if (available.length === 0) {
+            container.innerHTML = `
+                <div class="bento-card p-4 md:p-8 bg-white">
+                    <div class="text-center py-8">
+                        <div class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-200">
+                            <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <p class="text-sm font-bold text-gray-900 mb-1">No Messengers Available</p>
+                        <p class="text-xs text-gray-400 font-medium">Set <code class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">SIGNAL_API_URL</code> or <code class="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">WHATSAPP_API_URL</code> and restart.</p>
+                    </div>
+                </div>`;
+            loadApiConfig();
+            return;
+        }
+
+        container.innerHTML = available
+            .map(([type, s]) => {
+                const meta = MESSENGER_META[type] || {
+                    label: type,
+                    description: "",
+                    icon: "",
+                    color: "#999",
+                };
+
+                let dotClass = "w-2.5 h-2.5 rounded-full bg-gray-400";
+                let statusText = "Idle";
+                let statusTextClass = "text-xs font-semibold text-gray-500";
+                let numberText = "Not Linked";
+                let statusLabel = "Offline";
+                let btnLabel = "Link Device";
+
+                if (s.connected) {
+                    dotClass =
                         "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]";
-                    text.textContent = "Connected";
-                    text.className = "text-xs font-semibold text-green-600";
-                    label.textContent = "Connected";
-                    number.textContent =
-                        data.messengers.signal?.phone || "Linked";
-                    relinkBtn.textContent = "Relink";
-                    relinkBtn.classList.remove("hidden");
-                } else {
-                    dot.className = "w-2.5 h-2.5 rounded-full bg-gray-400";
-                    text.textContent = "Disconnected";
-                    label.textContent = "Not Connected";
-                    number.textContent = "Not Linked";
-                    relinkBtn.textContent = "Link Device";
-                    relinkBtn.classList.remove("hidden");
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        window.loadApiConfig = async function () {
-            try {
-                const response = await fetch("/api/config");
-                if (response.ok) {
-                    const config = await response.json();
-                    document.getElementById("config-apiKey").value =
-                        config.apiKey || "";
-                    document.getElementById("config-model").value =
-                        config.model || "";
-                    document.getElementById("config-baseUrl").value =
-                        config.baseUrl || "";
-                    document.getElementById("config-disableDelay").checked =
-                        !!config.disableDelay;
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        };
-
-        window.saveApiConfig = async function (e) {
-            e.preventDefault();
-            const data = {
-                apiKey: document.getElementById("config-apiKey").value,
-                model: document.getElementById("config-model").value,
-                baseUrl: document.getElementById("config-baseUrl").value,
-                disableDelay: document.getElementById("config-disableDelay")
-                    .checked,
-            };
-
-            try {
-                const response = await fetch("/api/config", {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
-                });
-                if (response.ok) showToast("Configuration synchronized");
-            } catch (e) {
-                showToast("Sync failed");
-            }
-        };
-
-        window.syncContacts = async function () {
-            try {
-                showToast("Syncing contacts...");
-
-                const statusResponse = await fetch("/api/status");
-                const status = await statusResponse.json();
-
-                if (
-                    !status.messengers ||
-                    Object.keys(status.messengers).length === 0
-                ) {
-                    showToast("No connected messengers");
-                    return;
+                    statusText = "Connected";
+                    statusTextClass = "text-xs font-semibold text-green-600";
+                    numberText = s.phone || "Linked";
+                    statusLabel = "Connected";
+                    btnLabel = "Relink";
+                } else if (s.enabled) {
+                    dotClass = "w-2.5 h-2.5 rounded-full bg-yellow-400";
+                    statusText = "Linked";
+                    statusTextClass = "text-xs font-semibold text-yellow-600";
+                    numberText = s.phone || "Linked";
+                    statusLabel = "Reconnecting...";
+                    btnLabel = "Reconnect";
+                } else if (s.phone) {
+                    dotClass = "w-2.5 h-2.5 rounded-full bg-blue-400";
+                    statusText = "Detected";
+                    statusTextClass = "text-xs font-semibold text-blue-600";
+                    numberText = s.phone;
+                    statusLabel = "Ready to link";
+                    btnLabel = "Link Device";
                 }
 
-                let syncedCount = 0;
-                let failedCount = 0;
+                return `
+            <section class="bento-card p-4 md:p-8 bg-white">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-8 gap-3">
+                    <div>
+                        <h3 class="text-lg md:text-xl font-black text-gray-900 tracking-tight">${meta.label}</h3>
+                        <p class="text-sm text-gray-400 font-medium">${meta.description}</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div id="${type}-dot" class="${dotClass}"></div>
+                        <span id="${type}-text" class="${statusTextClass}">${statusText}</span>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between p-4 bg-gray-50 rounded-xl md:rounded-2xl border border-gray-100 gap-3">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm flex-shrink-0">${meta.icon}</div>
+                        <div class="min-w-0">
+                            <p id="${type}-number" class="text-sm font-bold text-gray-900 leading-none">${numberText}</p>
+                            <p class="text-xs font-semibold text-gray-500 mt-1"><span id="${type}-status-label">${statusLabel}</span></p>
+                        </div>
+                    </div>
+                    <button onclick="showRelinkQR('${type}')" class="bg-black text-white text-[11px] font-black uppercase tracking-widest py-2 md:py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 flex-shrink-0">${btnLabel}</button>
+                </div>
+                <div id="${type}-relink-container" class="hidden mt-8 pt-8 border-t border-gray-50">
+                    <div class="text-center bg-gray-50 p-8 rounded-[32px] border border-dashed border-gray-200">
+                        <p class="text-xs font-bold text-gray-500 mb-6 uppercase tracking-widest">Scan to synchronize</p>
+                        <div id="${type}-relink-qr" class="flex flex-col items-center">
+                            <div class="animate-spin rounded-full h-10 w-10 border-b-2" style="border-color: ${meta.color}"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>`;
+            })
+            .join("");
 
-                for (const [messengerType, messengerStatus] of Object.entries(
-                    status.messengers,
-                )) {
-                    if (messengerStatus.connected || messengerStatus.phone) {
-                        try {
-                            const response = await fetch(
-                                `/api/messenger/${messengerType}/contacts/import`,
-                                { method: "POST" },
-                            );
+        loadApiConfig();
+    })();
 
-                            if (response.ok) {
-                                syncedCount++;
-                            } else {
-                                failedCount++;
-                            }
-                        } catch (e) {
-                            console.error(
-                                `Failed to sync ${messengerType}:`,
-                                e,
-                            );
-                            failedCount++;
-                        }
-                    }
-                }
+    window.showRelinkQR = async function (type) {
+        const container = document.getElementById(`${type}-relink-container`);
+        const qrDiv = document.getElementById(`${type}-relink-qr`);
+        container.classList.remove("hidden");
+        qrDiv.innerHTML =
+            '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-400"></div>';
 
-                if (syncedCount > 0) {
-                    const msg =
-                        failedCount > 0
-                            ? `Synced ${syncedCount} messenger(s), ${failedCount} failed`
-                            : `Contacts synchronized from ${syncedCount} messenger(s)`;
-                    showToast(msg);
-
-                    const contactListResponse = await fetch("/api/contacts");
-                    if (contactListResponse.ok) {
-                        const contactList =
-                            document.getElementById("contact-list");
-                        if (contactList) {
-                            contactList.innerHTML =
-                                await contactListResponse.text();
-                        }
-                    }
-                } else {
-                    showToast("No contacts synchronized");
-                }
-            } catch (e) {
-                console.error(e);
-                showToast("Sync failed");
-            }
-        };
-
-        window.showRelinkQR = async function () {
-            const container = document.getElementById("relink-container");
-            const qrDiv = document.getElementById("relink-qr");
-            container.classList.remove("hidden");
-            qrDiv.innerHTML =
-                '<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>';
-
-            try {
-                await fetch("/api/messenger/signal/unlink", { method: "POST" });
-                const response = await fetch(
-                    "/api/messenger/signal/link/start",
-                );
-                const data = await response.json();
-                qrDiv.innerHTML = `
-                <img src="data:image/png;base64,${data.qrCode}" class="w-64 h-64 border-4 border-white rounded-[32px] shadow-2xl">
-                <p class="text-[10px] font-black text-purple-600 uppercase mt-6 tracking-widest animate-pulse">Scanning...</p>
-            `;
-                startRelinkPolling();
-            } catch (e) {
+        try {
+            await fetch(`/api/messenger/${type}/unlink`, { method: "POST" });
+            const response = await fetch(`/api/messenger/${type}/link/start`);
+            if (!response.ok) {
                 qrDiv.innerHTML =
-                    '<p class="text-red-500 font-bold">Generation Failed</p>';
+                    '<p class="text-red-500 font-bold">Generation failed</p>';
+                return;
             }
-        };
+            const data = await response.json();
 
-        function startRelinkPolling() {
-            const container = document.getElementById("relink-container");
-            const qrDiv = document.getElementById("relink-qr");
+            if (data.qrCode) {
+                qrDiv.innerHTML = `
+                    <img src="data:image/png;base64,${data.qrCode}" class="w-64 h-64 border-4 border-white rounded-[32px] shadow-2xl">
+                    <p class="text-[10px] font-black uppercase mt-6 tracking-widest animate-pulse" style="color: ${MESSENGER_META[type]?.color || "#6d28d9"}">Scanning...</p>`;
+            } else {
+                qrDiv.innerHTML =
+                    '<p class="text-red-500 font-bold">Invalid response</p>';
+                return;
+            }
+
             let attempts = 0;
             const poll = async () => {
                 if (attempts >= 120) return;
                 try {
-                    const response = await fetch(
-                        "/api/messenger/signal/link/status",
+                    const pollRes = await fetch(
+                        `/api/messenger/${type}/link/status`,
                     );
-                    const data = await response.json();
-                    if (data.linked) {
+                    const pollData = await pollRes.json();
+                    if (pollData.linked) {
                         qrDiv.innerHTML =
-                            '<div class="text-purple-600 font-black uppercase text-sm tracking-widest">Synchronization Complete</div>';
+                            '<div class="text-green-600 font-black uppercase text-sm tracking-widest">Synchronization Complete</div>';
                         setTimeout(() => {
                             container.classList.add("hidden");
-                            window.loadSignalStatus();
+                            location.reload();
                         }, 2000);
                         return;
                     }
@@ -573,10 +427,106 @@
                 setTimeout(poll, 1000);
             };
             poll();
+        } catch (e) {
+            qrDiv.innerHTML =
+                '<p class="text-red-500 font-bold">Generation failed</p>';
         }
+    };
 
-        window.loadSignalStatus();
-        window.loadApiConfig();
-    })();
+    window.loadApiConfig = async function () {
+        try {
+            const response = await fetch("/api/config");
+            if (response.ok) {
+                const config = await response.json();
+                document.getElementById("config-apiKey").value =
+                    config.apiKey || "";
+                document.getElementById("config-model").value =
+                    config.model || "";
+                document.getElementById("config-baseUrl").value =
+                    config.baseUrl || "";
+                document.getElementById("config-disableDelay").checked =
+                    !!config.disableDelay;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    window.saveApiConfig = async function (e) {
+        e.preventDefault();
+        const data = {
+            apiKey: document.getElementById("config-apiKey").value,
+            model: document.getElementById("config-model").value,
+            baseUrl: document.getElementById("config-baseUrl").value,
+            disableDelay: document.getElementById("config-disableDelay")
+                .checked,
+        };
+        try {
+            const response = await fetch("/api/config", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            if (response.ok) showToast("Configuration synchronized");
+        } catch (e) {
+            showToast("Sync failed");
+        }
+    };
+
+    window.syncContacts = async function () {
+        try {
+            showToast("Syncing contacts...");
+            const statusResponse = await fetch("/api/status");
+            const status = await statusResponse.json();
+            if (
+                !status.messengers ||
+                Object.keys(status.messengers).length === 0
+            ) {
+                showToast("No connected messengers");
+                return;
+            }
+            let syncedCount = 0;
+            let failedCount = 0;
+            for (const [messengerType, messengerStatus] of Object.entries(
+                status.messengers,
+            )) {
+                if (messengerStatus.connected || messengerStatus.phone) {
+                    try {
+                        const response = await fetch(
+                            `/api/messenger/${messengerType}/contacts/import`,
+                            { method: "POST" },
+                        );
+                        if (response.ok) {
+                            syncedCount++;
+                        } else {
+                            failedCount++;
+                        }
+                    } catch (e) {
+                        console.error(`Failed to sync ${messengerType}:`, e);
+                        failedCount++;
+                    }
+                }
+            }
+            if (syncedCount > 0) {
+                const msg =
+                    failedCount > 0
+                        ? `Synced ${syncedCount} messenger(s), ${failedCount} failed`
+                        : `Contacts synchronized from ${syncedCount} messenger(s)`;
+                showToast(msg);
+                const contactListResponse = await fetch("/api/contacts");
+                if (contactListResponse.ok) {
+                    const contactList = document.getElementById("contact-list");
+                    if (contactList)
+                        contactList.innerHTML =
+                            await contactListResponse.text();
+                }
+            } else {
+                showToast("No contacts synchronized");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Sync failed");
+        }
+    };
 </script>
 {{end}}
