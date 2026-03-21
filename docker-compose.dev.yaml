@@ -9,8 +9,7 @@ services:
     volumes:
       - ./data/signal:/home/.local/share/signal-cli:z
     healthcheck:
-      test:
-        ["CMD", "timeout", "5", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
+      test: ["CMD", "timeout", "5", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -26,15 +25,7 @@ services:
     volumes:
       - ./data/whatsapp:/app/storages:z
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--quiet",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/",
-        ]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -42,7 +33,7 @@ services:
     restart: unless-stopped
 
   talktothem:
-    image: ghcr.io/julienrbrt/talktothem:latest
+    build: .
     container_name: talktothem
     depends_on:
       signal-api:

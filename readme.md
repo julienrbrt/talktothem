@@ -59,14 +59,11 @@ Deploy TalkToThem instantly to cloud:
 <summary><b>Option 1: Docker (Recommended)</b></summary>
 
 ```bash
-# Clone repository
-git clone https://github.com/julienrbrt/talktothem.git
-cd talktothem
+# Create a directory and download the compose file
+mkdir talktothem && cd talktothem
+curl -O https://raw.githubusercontent.com/julienrbrt/talktothem/main/docker-compose.yaml
 
-# Create data directories
-mkdir -p data/signal
-
-# Start services
+# Start services (images are pulled from ghcr.io)
 docker compose up -d
 
 # Open web UI and complete onboarding
@@ -149,6 +146,12 @@ go run .
 ```
 
 The app will be available at `http://localhost:8080`.
+
+### Running with Docker (Development)
+
+```bash
+docker compose -f docker-compose.dev.yaml up -d
+```
 
 ## How It Works
 
