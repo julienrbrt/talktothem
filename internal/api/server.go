@@ -972,15 +972,6 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 			_ = db.SaveMessengerConfig(cfg)
 		}
 		s.ensureConnected(msgr)
-
-		// Pre-fill user profile from messenger profile
-		go func() {
-			if err := db.PrefillProfileFromMessenger(context.Background(), msgr, mt); err != nil {
-				slog.Warn("Failed to pre-fill user profile from messenger", "messenger", mt, "error", err)
-				return
-			}
-			slog.Info("Pre-filled user profile from messenger", "messenger", mt)
-		}()
 	}
 
 	response := MessengerLinkStatusResponse{
@@ -1077,8 +1068,12 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	s.ensureConnected(msgr)
 
 	go func() {
-		// Use background context to not cancel the import.
-		imported, err := s.contacts.ImportFromMessenger(context.Background(), msgr, req.Type)
+		ctx := context.Background()
+		if err := db.PrefillProfileFromMessenger(ctx, msgr, req.Type); err != nil {
+			slog.Warn("Failed to pre-fill profile after onboarding", "messenger", req.Type, "error", err)
+		}
+
+		imported, err := s.contacts.ImportFromMessenger(ctx, msgr, req.Type)
 		if err != nil {
 			slog.Warn("Failed to import contacts after onboarding", "messenger", req.Type, "error", err)
 			return

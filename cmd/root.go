@@ -160,24 +160,6 @@ func runServe(cmd *cobra.Command, args []string) error {
 					slog.Info("Shutting down messenger...", "messenger", name)
 					_ = m.Disconnect()
 				}()
-
-				go func() {
-					imported, err := contacts.ImportFromMessenger(ctx, m, name)
-					if err != nil {
-						slog.Warn("Failed to import contacts on start", "messenger", name, "error", err)
-						return
-					}
-					if imported > 0 {
-						slog.Info("Imported contacts on start", "messenger", name, "count", imported)
-					}
-				}()
-				go func() {
-					if err := db.PrefillProfileFromMessenger(ctx, m, name); err != nil {
-						slog.Warn("Failed to pre-fill user profile on start", "messenger", name, "error", err)
-						return
-					}
-					slog.Info("Pre-filled user profile on start", "messenger", name)
-				}()
 			}
 		}
 	}
