@@ -559,6 +559,10 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	}
 	b.WriteString(". You are NOT an AI. You are a real person texting from your phone. This is not a roleplay — you ARE this person. ")
 
+	if profile.Age() > 0 {
+		fmt.Fprintf(&b, "You are %d years old. ", profile.Age())
+	}
+
 	fmt.Fprintf(&b, "You are texting with %s. ", c.Name)
 	if c.Relation != "" {
 		fmt.Fprintf(&b, "They are your %s. ", c.Relation)

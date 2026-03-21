@@ -7,6 +7,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"log/slog"
@@ -970,10 +971,12 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 }
 
 type OnboardingRequest struct {
-	APIKey  string
-	Model   string
-	BaseURL string
-	Type    string
+	APIKey    string
+	Model     string
+	BaseURL   string
+	Type      string
+	Name      string
+	BirthYear string
 }
 
 func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
@@ -983,10 +986,12 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := OnboardingRequest{
-		APIKey:  r.FormValue("apiKey"),
-		Model:   r.FormValue("model"),
-		BaseURL: r.FormValue("baseUrl"),
-		Type:    r.FormValue("type"),
+		APIKey:    r.FormValue("apiKey"),
+		Model:     r.FormValue("model"),
+		BaseURL:   r.FormValue("baseUrl"),
+		Type:      r.FormValue("type"),
+		Name:      r.FormValue("name"),
+		BirthYear: r.FormValue("birthYear"),
 	}
 
 	if req.Type == "" {
@@ -1014,6 +1019,18 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "api key is required", http.StatusBadRequest)
 		return
 	}
+
+	profile := db.GetUserProfile()
+	if req.Name != "" {
+		profile.Name = req.Name
+	}
+	if req.BirthYear != "" {
+		var by int
+		if _, err := fmt.Sscanf(req.BirthYear, "%d", &by); err == nil && by > 1900 && by <= time.Now().Year() {
+			profile.BirthYear = by
+		}
+	}
+	_ = db.UpdateUserProfile(profile)
 
 	// Save LLM config
 	s.config.APIKey = req.APIKey
@@ -1063,9 +1080,6 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		ctx := context.Background()
-		if err := db.PrefillProfileFromMessenger(ctx, msgr, req.Type); err != nil {
-			slog.Warn("Failed to pre-fill profile after onboarding", "messenger", req.Type, "error", err)
-		}
 
 		imported, err := s.contacts.ImportFromMessenger(ctx, msgr, req.Type)
 		if err != nil {
@@ -1086,6 +1100,20 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 
 			if err := s.agent.LearnGlobalStyle(ctx); err != nil {
 				slog.Warn("Failed to learn global style after onboarding", "messenger", req.Type, "error", err)
+			}
+
+			for _, c := range s.contacts.List() {
+				if c.Messenger != req.Type || c.Style != "" {
+					continue
+				}
+				style, err := s.agent.LearnStyle(ctx, c.ID)
+				if err != nil {
+					slog.Debug("No per-contact style learned", "contact", c.Name, "error", err)
+					continue
+				}
+				if err := s.contacts.SetStyle(c.ID, style); err != nil {
+					slog.Warn("Failed to save learned style", "contact", c.Name, "error", err)
+				}
 			}
 		}
 	}()
@@ -1147,7 +1175,6 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// Return updated contact list for Go Templates
 	contacts := s.contacts.ListActiveConversations()
 	var response []ContactResponse
 	for _, ct := range contacts {
@@ -1160,6 +1187,29 @@ func (s *Server) importContactsFromMessenger(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/html")
 	if err := s.templates.ExecuteTemplate(w, "contacts", response); err != nil {
 		slog.Error("Error executing contacts template", "error", err)
+	}
+
+	if s.agent != nil {
+		go func() {
+			ctx := context.Background()
+			synced, err := s.agent.SyncAllHistory(ctx, mt)
+			if err != nil {
+				slog.Warn("Failed to sync history after import", "messenger", mt, "error", err)
+			} else if synced > 0 {
+				slog.Info("Synced history after import", "messenger", mt, "count", synced)
+			}
+
+			for _, c := range s.contacts.List() {
+				if c.Messenger != mt || c.Style != "" {
+					continue
+				}
+				style, err := s.agent.LearnStyle(ctx, c.ID)
+				if err != nil {
+					continue
+				}
+				_ = s.contacts.SetStyle(c.ID, style)
+			}
+		}()
 	}
 }
 
@@ -1284,6 +1334,8 @@ func (s *Server) conversationDetailPage(w http.ResponseWriter, r *http.Request) 
 
 type UserProfileResponse struct {
 	Name          string `json:"name"`
+	BirthYear     int    `json:"birthYear"`
+	Age           int    `json:"age"`
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
@@ -1296,6 +1348,8 @@ type UserProfileResponse struct {
 func toUserProfileResponse(p *db.UserProfile) UserProfileResponse {
 	return UserProfileResponse{
 		Name:          p.Name,
+		BirthYear:     p.BirthYear,
+		Age:           p.Age(),
 		About:         p.About,
 		FamilyContext: p.FamilyContext,
 		WorkContext:   p.WorkContext,
@@ -1326,6 +1380,7 @@ func (s *Server) learnGlobalStyle(w http.ResponseWriter, r *http.Request) {
 
 type UpdateUserProfileRequest struct {
 	Name          string `json:"name"`
+	BirthYear     int    `json:"birthYear"`
 	About         string `json:"about"`
 	FamilyContext string `json:"familyContext"`
 	WorkContext   string `json:"workContext"`
@@ -1344,6 +1399,7 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile := db.GetUserProfile()
 	profile.Name = req.Name
+	profile.BirthYear = req.BirthYear
 	profile.About = req.About
 	profile.FamilyContext = req.FamilyContext
 	profile.WorkContext = req.WorkContext

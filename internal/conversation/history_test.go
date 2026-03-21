@@ -113,9 +113,6 @@ func (m *mockMessenger) StartLinking(ctx context.Context, deviceName string) ([]
 	return nil, nil
 }
 func (m *mockMessenger) IsLinked(ctx context.Context) (bool, string, error) { return true, "mock", nil }
-func (m *mockMessenger) GetOwnProfile(_ context.Context) (*messenger.OwnProfile, error) {
-	return nil, nil
-}
 func (m *mockMessenger) GetContacts(_ context.Context) ([]messenger.Contact, error) {
 	return nil, nil
 }

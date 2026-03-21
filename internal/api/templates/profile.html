@@ -19,29 +19,45 @@
                 class="space-y-6 md:space-y-8"
             >
                 <div class="space-y-4 md:space-y-6">
-                    <div class="space-y-2">
-                        <label
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                            >Your Name</label
-                        >
-                        <input
-                            type="text"
-                            id="profile-name"
-                            class="w-full bg-white border border-gray-200 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold"
-                            placeholder="Display Name"
-                        />
-                    </div>
-                    <div class="space-y-2">
-                        <label
-                            class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
-                            >Persona Summary</label
-                        >
-                        <textarea
-                            id="profile-about"
-                            rows="3"
-                            class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
-                            placeholder="Key personality traits, hobbies, and general bio..."
-                        ></textarea>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div class="space-y-2">
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                                >Your Name</label
+                            >
+                            <input
+                                type="text"
+                                id="profile-name"
+                                class="w-full bg-white border border-gray-200 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold"
+                                placeholder="Display Name"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                                >Birth Year</label
+                            >
+                            <input
+                                type="number"
+                                id="profile-birthyear"
+                                min="1920"
+                                max="2010"
+                                class="w-full bg-white border border-gray-200 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-200 transition-all font-bold"
+                                placeholder="1990"
+                            />
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                class="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1"
+                                >Persona Summary</label
+                            >
+                            <textarea
+                                id="profile-about"
+                                rows="3"
+                                class="w-full bg-gray-50 border border-gray-100 rounded-xl md:rounded-2xl px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:bg-white transition-all font-medium"
+                                placeholder="Key personality traits, hobbies, and general bio..."
+                            ></textarea>
+                        </div>
                     </div>
                 </div>
 
@@ -170,6 +186,8 @@
                     const profile = await response.json();
                     document.getElementById("profile-name").value =
                         profile.name || "";
+                    document.getElementById("profile-birthyear").value =
+                        profile.birthYear || "";
                     document.getElementById("profile-about").value =
                         profile.about || "";
                     document.getElementById("profile-family").value =
@@ -211,6 +229,7 @@
             e.preventDefault();
             const data = {
                 name: document.getElementById("profile-name").value,
+                birthYear: parseInt(document.getElementById("profile-birthyear").value) || 0,
                 about: document.getElementById("profile-about").value,
                 familyContext: document.getElementById("profile-family").value,
                 workContext: document.getElementById("profile-work").value,

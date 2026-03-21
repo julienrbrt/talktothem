@@ -315,10 +315,6 @@ func (c *Client) IsLinked(ctx context.Context) (bool, string, error) {
 	return false, "", nil
 }
 
-func (c *Client) GetOwnProfile(_ context.Context) (*messenger.OwnProfile, error) {
-	return &messenger.OwnProfile{}, nil
-}
-
 func (c *Client) GetContacts(ctx context.Context) ([]messenger.Contact, error) {
 	slog.Info("WhatsApp getting contacts...")
 

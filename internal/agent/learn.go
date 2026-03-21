@@ -121,12 +121,6 @@ func (a *Agent) LearnFromMessengers(ctx context.Context) {
 			}
 			slog.Info("Learned location from messenger phone", "messenger", name, "location", location)
 		}
-
-		go func(m messenger.Messenger, messengerName string) {
-			if err := db.PrefillProfileFromMessenger(ctx, m, messengerName); err != nil {
-				slog.Warn("Failed to pre-fill profile from messenger", "messenger", messengerName, "error", err)
-			}
-		}(msgr, name)
 	}
 }
 

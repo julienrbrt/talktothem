@@ -1,13 +1,12 @@
 package db
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/glebarez/sqlite"
-	"github.com/julienrbrt/talktothem/internal/messenger"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +21,7 @@ type Config struct {
 type UserProfile struct {
 	ID            uint `gorm:"primaryKey"`
 	Name          string
+	BirthYear     int
 	About         string `gorm:"type:text"`
 	FamilyContext string `gorm:"type:text"`
 	WorkContext   string `gorm:"type:text"`
@@ -129,33 +129,11 @@ func UpdateUserProfile(profile *UserProfile) error {
 	return DB.Save(profile).Error
 }
 
-func PrefillProfileFromMessenger(ctx context.Context, msgr messenger.Messenger, messengerName string) error {
-	profile, err := msgr.GetOwnProfile(ctx)
-	if err != nil {
-		return err
+func (p *UserProfile) Age() int {
+	if p.BirthYear <= 0 {
+		return 0
 	}
-
-	if profile.Name == "" && profile.About == "" {
-		return nil
-	}
-
-	existing := GetUserProfile()
-	updated := false
-
-	if existing.Name == "" && profile.Name != "" {
-		existing.Name = profile.Name
-		updated = true
-	}
-	if existing.About == "" && profile.About != "" {
-		existing.About = profile.About
-		updated = true
-	}
-
-	if !updated {
-		return nil
-	}
-
-	return UpdateUserProfile(existing)
+	return time.Now().Year() - p.BirthYear
 }
 
 func UpdateLearnedFields(location, timezone, language string) error {
