@@ -52,7 +52,7 @@ func (c *Client) Generate(ctx context.Context, prompt string) (string, error) {
 
 func (c *Client) Describe(ctx context.Context, imageData []byte) (string, error) {
 	mimeType := detectImageType(imageData)
-	imageURL := fmt.Sprintf("data:%s;base64,%s", mimeType, encodeBase64(imageData))
+	imageURL := fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(imageData))
 
 	resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -74,10 +74,6 @@ func (c *Client) Describe(ctx context.Context, imageData []byte) (string, error)
 	}
 
 	return resp.Choices[0].Message.Content, nil
-}
-
-func encodeBase64(data []byte) string {
-	return base64.StdEncoding.EncodeToString(data)
 }
 
 func detectImageType(data []byte) string {

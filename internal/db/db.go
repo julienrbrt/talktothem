@@ -96,16 +96,6 @@ func UpdateConfig(config *Config) error {
 	return DB.Save(config).Error
 }
 
-func GetOrCreateConfig() *Config {
-	var config Config
-	result := DB.First(&config)
-	if result.Error == gorm.ErrRecordNotFound {
-		config = Config{}
-		DB.Create(&config)
-	}
-	return &config
-}
-
 func GetMessengerConfig(messengerType string) *MessengerConfig {
 	var config MessengerConfig
 	result := DB.Where("type = ?", messengerType).Order("enabled DESC, id DESC").First(&config)

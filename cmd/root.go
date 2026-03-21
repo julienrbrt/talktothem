@@ -156,12 +156,9 @@ func runServe(cmd *cobra.Command, args []string) error {
 				slog.Warn("failed to connect to the messenger", "messenger", name, "error", err)
 				slog.Info("Continuing without a messenger connection...", "messenger", name)
 			} else {
-				// Capture the variable for defer
-				mToClose := m
-				nameToClose := name
 				defer func() {
-					slog.Info("Shutting down messenger...", "messenger", nameToClose)
-					_ = mToClose.Disconnect()
+					slog.Info("Shutting down messenger...", "messenger", name)
+					_ = m.Disconnect()
 				}()
 
 				go func() {

@@ -2,6 +2,7 @@ package conversation
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,20 +23,7 @@ func (h *History) Add(msg messenger.Message) error {
 	if msg.ID == "" {
 		msg.ID = uuid.New().String()
 	}
-
-	dbMsg := db.Message{
-		ID:        msg.ID,
-		ContactID: h.contactID,
-		Content:   msg.Content,
-		Type:      string(msg.Type),
-		MediaURLs: strings.Join(msg.MediaURLs, ","),
-		Timestamp: msg.Timestamp.UnixMilli(),
-		IsFromMe:  msg.IsFromMe,
-		Reaction:  msg.Reaction,
-		IsGroup:   msg.IsGroup,
-	}
-
-	return db.DB.Create(&dbMsg).Error
+	return db.DB.Create(toDBMsg(msg, h.contactID)).Error
 }
 
 func (h *History) GetRecent(limit int) []messenger.Message {
@@ -50,8 +38,11 @@ func (h *History) GetRange(limit int, since, before time.Time) []messenger.Messa
 	return h.getMessages(limit, &before, &since)
 }
 
-func (h *History) getMessages(limit int, before *time.Time, since *time.Time) []messenger.Message {
-	var dbMessages []db.Message
+func (h *History) GetSince(since time.Time) []messenger.Message {
+	return h.getMessages(0, nil, &since)
+}
+
+func (h *History) getMessages(limit int, before, since *time.Time) []messenger.Message {
 	query := db.DB.Where("contact_id = ?", h.contactID)
 	if before != nil {
 		query = query.Where("timestamp <= ?", before.UnixMilli())
@@ -59,69 +50,49 @@ func (h *History) getMessages(limit int, before *time.Time, since *time.Time) []
 	if since != nil {
 		query = query.Where("timestamp >= ?", since.UnixMilli())
 	}
-	query = query.Order("timestamp DESC")
 
 	if limit > 0 {
-		query = query.Limit(limit)
+		query = query.Order("timestamp DESC").Limit(limit)
+	} else {
+		query = query.Order("timestamp ASC")
 	}
 
+	var dbMessages []db.Message
 	if err := query.Find(&dbMessages).Error; err != nil {
 		return nil
 	}
 
-	// Reverse to get chronological order (oldest first)
-	for i, j := 0, len(dbMessages)-1; i < j; i, j = i+1, j-1 {
-		dbMessages[i], dbMessages[j] = dbMessages[j], dbMessages[i]
+	if limit > 0 {
+		slices.Reverse(dbMessages)
 	}
 
+	return mapMessages(dbMessages)
+}
+
+func mapMessages(dbMessages []db.Message) []messenger.Message {
 	messages := make([]messenger.Message, len(dbMessages))
 	for i, m := range dbMessages {
-		var mediaURLs []string
-		if m.MediaURLs != "" {
-			mediaURLs = strings.Split(m.MediaURLs, ",")
-		}
-		messages[i] = messenger.Message{
-			ID:        m.ID,
-			ContactID: m.ContactID,
-			Content:   m.Content,
-			Type:      messenger.MessageType(m.Type),
-			MediaURLs: mediaURLs,
-			Timestamp: time.UnixMilli(m.Timestamp),
-			IsFromMe:  m.IsFromMe,
-			Reaction:  m.Reaction,
-			IsGroup:   m.IsGroup,
-		}
+		messages[i] = toMessengerMsg(m)
 	}
-
 	return messages
 }
 
-func (h *History) GetSince(since time.Time) []messenger.Message {
-	var dbMessages []db.Message
-	if err := db.DB.Where("contact_id = ? AND timestamp > ?", h.contactID, since.UnixMilli()).Order("timestamp ASC").Find(&dbMessages).Error; err != nil {
-		return nil
+func toMessengerMsg(m db.Message) messenger.Message {
+	var mediaURLs []string
+	if m.MediaURLs != "" {
+		mediaURLs = strings.Split(m.MediaURLs, ",")
 	}
-
-	messages := make([]messenger.Message, len(dbMessages))
-	for i, m := range dbMessages {
-		var mediaURLs []string
-		if m.MediaURLs != "" {
-			mediaURLs = strings.Split(m.MediaURLs, ",")
-		}
-		messages[i] = messenger.Message{
-			ID:        m.ID,
-			ContactID: m.ContactID,
-			Content:   m.Content,
-			Type:      messenger.MessageType(m.Type),
-			MediaURLs: mediaURLs,
-			Timestamp: time.UnixMilli(m.Timestamp),
-			IsFromMe:  m.IsFromMe,
-			Reaction:  m.Reaction,
-			IsGroup:   m.IsGroup,
-		}
+	return messenger.Message{
+		ID:        m.ID,
+		ContactID: m.ContactID,
+		Content:   m.Content,
+		Type:      messenger.MessageType(m.Type),
+		MediaURLs: mediaURLs,
+		Timestamp: time.UnixMilli(m.Timestamp),
+		IsFromMe:  m.IsFromMe,
+		Reaction:  m.Reaction,
+		IsGroup:   m.IsGroup,
 	}
-
-	return messages
 }
 
 func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID string) error {
@@ -140,22 +111,25 @@ func (h *History) Sync(ctx context.Context, m messenger.Messenger, contactID str
 			msg.ID, h.contactID, msg.Timestamp.UnixMilli(), msg.IsFromMe).First(&existing)
 
 		if result.Error != nil {
-			dbMsg := db.Message{
-				ID:        msg.ID,
-				ContactID: h.contactID,
-				Content:   msg.Content,
-				Type:      string(msg.Type),
-				MediaURLs: strings.Join(msg.MediaURLs, ","),
-				Timestamp: msg.Timestamp.UnixMilli(),
-				IsFromMe:  msg.IsFromMe,
-				Reaction:  msg.Reaction,
-				IsGroup:   msg.IsGroup,
-			}
-			db.DB.Create(&dbMsg)
+			db.DB.Create(toDBMsg(msg, h.contactID))
 		}
 	}
 
 	return nil
+}
+
+func toDBMsg(msg messenger.Message, contactID string) *db.Message {
+	return &db.Message{
+		ID:        msg.ID,
+		ContactID: contactID,
+		Content:   msg.Content,
+		Type:      string(msg.Type),
+		MediaURLs: strings.Join(msg.MediaURLs, ","),
+		Timestamp: msg.Timestamp.UnixMilli(),
+		IsFromMe:  msg.IsFromMe,
+		Reaction:  msg.Reaction,
+		IsGroup:   msg.IsGroup,
+	}
 }
 
 func (h *History) GetMessageCount() (int, error) {
@@ -183,22 +157,8 @@ func GetLastMessage(contactID string) (*messenger.Message, error) {
 	if err := db.DB.Where("contact_id = ?", contactID).Order("timestamp DESC").First(&dbMsg).Error; err != nil {
 		return nil, err
 	}
-
-	var mediaURLs []string
-	if dbMsg.MediaURLs != "" {
-		mediaURLs = strings.Split(dbMsg.MediaURLs, ",")
-	}
-	return &messenger.Message{
-		ID:        dbMsg.ID,
-		ContactID: dbMsg.ContactID,
-		Content:   dbMsg.Content,
-		Type:      messenger.MessageType(dbMsg.Type),
-		MediaURLs: mediaURLs,
-		Timestamp: time.UnixMilli(dbMsg.Timestamp),
-		IsFromMe:  dbMsg.IsFromMe,
-		Reaction:  dbMsg.Reaction,
-		IsGroup:   dbMsg.IsGroup,
-	}, nil
+	msg := toMessengerMsg(dbMsg)
+	return &msg, nil
 }
 
 func GetMessageCount(contactID string) (int, error) {

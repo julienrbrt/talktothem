@@ -57,48 +57,58 @@ func (c *Client) Name() string {
 	return "whatsapp"
 }
 
-func (c *Client) ensureDevice() {
+func (c *Client) ensureDevice() error {
 	existing, err := c.listDevices()
 	if err != nil {
 		slog.Warn("WhatsApp failed to list devices, will try to register", "error", err)
-		return
-	}
-
-	for _, d := range existing {
-		if d.ID == deviceID {
-			slog.Info("WhatsApp device already registered", "deviceID", deviceID)
-			return
+	} else {
+		for _, d := range existing {
+			if d.ID == deviceID {
+				slog.Info("WhatsApp device already registered", "deviceID", deviceID)
+				return nil
+			}
 		}
 	}
 
 	reqBody, _ := json.Marshal(map[string]string{"device_id": deviceID})
-	resp, err := c.http.Post(c.baseURL+"/devices", "application/json", bytes.NewReader(reqBody))
+	req, err := c.newRequest(http.MethodPost, "/devices", bytes.NewReader(reqBody))
 	if err != nil {
-		slog.Warn("WhatsApp failed to register device", "error", err)
-		return
+		return fmt.Errorf("create device request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("register device: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
-		slog.Info("WhatsApp device registered", "deviceID", deviceID)
-	} else {
+	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		slog.Warn("WhatsApp device registration returned", "status", resp.StatusCode, "body", string(body))
+		return fmt.Errorf("register device failed (%d): %s", resp.StatusCode, string(body))
 	}
+
+	slog.Info("WhatsApp device registered", "deviceID", deviceID)
+	return nil
 }
 
 func (c *Client) listDevices() ([]struct {
 	ID   string `json:"id"`
 	Name string `json:"display_name"`
 }, error) {
-	resp, err := c.http.Get(c.baseURL + "/devices")
+	req, err := c.newRequest(http.MethodGet, "/devices", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status %d", resp.StatusCode)
+		return nil, fmt.Errorf("list devices status %d", resp.StatusCode)
 	}
 
 	var result struct {
@@ -175,12 +185,22 @@ func (c *Client) IsConnected() bool {
 func (c *Client) StartLinking(ctx context.Context, deviceName string) ([]byte, error) {
 	slog.Info("Starting WhatsApp linking...")
 
-	logoutReq, _ := c.newRequest(http.MethodGet, "/app/logout", nil)
-	if logoutReq != nil {
-		logoutResp, err := c.http.Do(logoutReq)
-		if err == nil {
-			logoutResp.Body.Close()
-			slog.Info("WhatsApp cleared previous session before login")
+	if err := c.ensureDevice(); err != nil {
+		return nil, fmt.Errorf("ensure device: %w", err)
+	}
+
+	linked, _, _ := c.IsLinked(ctx)
+	if linked {
+		logoutReq, _ := c.newRequest(http.MethodGet, "/app/logout", nil)
+		if logoutReq != nil {
+			logoutResp, err := c.http.Do(logoutReq)
+			if err == nil {
+				logoutResp.Body.Close()
+				slog.Info("WhatsApp cleared previous session before login")
+			}
+		}
+		if err := c.ensureDevice(); err != nil {
+			return nil, fmt.Errorf("re-create device after logout: %w", err)
 		}
 	}
 

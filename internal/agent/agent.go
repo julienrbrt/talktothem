@@ -41,13 +41,15 @@ type Response struct {
 	Content          string
 	ContactID        string
 	Delay            time.Duration
+	TypingDelay      time.Duration
 	TriggerMessageID string
 }
 
 type QueuedResponse struct {
-	Content   string
-	ContactID string
-	SendAt    time.Time
+	Content     string
+	ContactID   string
+	SendAt      time.Time
+	TypingDelay time.Duration
 }
 
 type ResponseCheck struct {
@@ -468,10 +470,11 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 					slog.Info("Agent Generated response", "response", resp)
 
 					delay := a.calculateDelay(m, resp)
+					typingDelay := a.calculateTypingDelay(resp)
 					sendAt := time.Now().Add(delay)
 
 					select {
-					case a.queued <- QueuedResponse{Content: resp, ContactID: cID, SendAt: sendAt}:
+					case a.queued <- QueuedResponse{Content: resp, ContactID: cID, SendAt: sendAt, TypingDelay: typingDelay}:
 					default:
 					}
 
@@ -485,7 +488,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 						return
 					case <-timer.C:
 						select {
-						case a.outbox <- Response{Content: resp, ContactID: cID, TriggerMessageID: m.ID}:
+						case a.outbox <- Response{Content: resp, ContactID: cID, TypingDelay: typingDelay, TriggerMessageID: m.ID}:
 							slog.Info("Agent Response sent to outbox")
 						case <-msgCtx.Done():
 							return
@@ -512,10 +515,10 @@ func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.
 		return 0
 	}
 
-	// Base delay: 2-5 seconds for "thinking"
+	// Base delay: 2-5 seconds for "thinking" before typing starts
 	delay := time.Duration(2+(time.Now().UnixNano()%3)) * time.Second
 
-	// Add typing time: ~200 chars per minute = ~3 chars per second
+	// Add typing time: ~200 chars per minute = ~3 chars per second, max 30s
 	typingTime := time.Duration(min(len(response)/3, 30)) * time.Second
 	delay += typingTime
 
@@ -526,6 +529,17 @@ func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.
 	}
 
 	return delay
+}
+
+func (a *Agent) calculateTypingDelay(response string) time.Duration {
+	cfg := db.GetConfig()
+	if cfg != nil && cfg.DisableDelay {
+		return 0
+	}
+
+	// ~300 chars per minute = ~5 chars per second, scaled by message length, max 20s
+	typingTime := max(time.Duration(min(len(response)/5, 20))*time.Second, time.Second)
+	return typingTime
 }
 
 func systemPrompt(c contact.Contact, profile *db.UserProfile) string {

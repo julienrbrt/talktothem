@@ -181,12 +181,7 @@ func NewServer(ctx context.Context, addr string, ag *agent.Agent, cm *contact.Ma
 }
 
 func FileServer(r chi.Router, path string, root fs.FS) {
-	sub, err := fs.Sub(root, ".")
-	if err != nil {
-		return
-	}
-	fs := http.FileServer(http.FS(sub))
-
+	fs := http.FileServer(http.FS(root))
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		fs.ServeHTTP(w, r)
 	})
@@ -220,83 +215,67 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
+func (s *Server) getMessenger(contactID string) messenger.Messenger {
+	c, ok := s.contacts.Get(contactID)
+	if !ok {
+		return nil
+	}
+	msgr, ok := s.messengers[c.Messenger]
+	if !ok || msgr == nil {
+		return nil
+	}
+	return msgr
+}
+
+func (s *Server) sendTyping(contactID string, show bool) {
+	cfg := db.GetConfig()
+	if cfg == nil || cfg.DisableDelay {
+		return
+	}
+	if msgr := s.getMessenger(contactID); msgr != nil {
+		if err := msgr.SendTypingIndicator(context.Background(), contactID, show); err != nil {
+			slog.Error("Error with typing indicator", "show", show, "error", err)
+		}
+	}
+}
+
 func (s *Server) listenForAgentResponses() {
 	for resp := range s.agent.Outbox() {
-		// Hide typing indicator before sending
-		cfg := db.GetConfig()
-		if cfg != nil && !cfg.DisableDelay {
-			c, ok := s.contacts.Get(resp.ContactID)
-			if ok {
-				if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
-					if err := msgr.SendTypingIndicator(context.Background(), resp.ContactID, false); err != nil {
-						slog.Error("Error hiding typing indicator", "error", err)
-					}
-				}
+		if resp.TypingDelay > 0 {
+			time.Sleep(resp.TypingDelay)
+		}
+		s.sendTyping(resp.ContactID, false)
+
+		if msgr := s.getMessenger(resp.ContactID); msgr != nil {
+			if err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content); err != nil {
+				slog.Error("Error sending agent message to messenger", "error", err)
 			}
 		}
 
-		// Send the message to the messenger
-		c, ok := s.contacts.Get(resp.ContactID)
-		if ok {
-			if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
-				err := msgr.SendMessage(context.Background(), resp.ContactID, resp.Content)
-				if err != nil {
-					slog.Error("Error sending agent message to messenger", "error", err)
-				}
-			}
-		}
-
-		// Record the message in the conversation history
-		msg := messenger.Message{
+		_ = s.agent.RecordMessage(context.Background(), messenger.Message{
 			ContactID: resp.ContactID,
 			Content:   resp.Content,
 			Type:      messenger.TypeText,
 			Timestamp: time.Now(),
 			IsFromMe:  true,
-		}
-		if err := s.agent.RecordMessage(context.Background(), msg); err != nil {
-			slog.Error("Error recording agent message", "error", err)
-		}
+		})
 
-		// Broadcast the message to the UI
-		event := MessageEvent{
-			Type: "agent_response",
-			Payload: map[string]string{
-				"contactId": resp.ContactID,
-				"content":   resp.Content,
-			},
-		}
-		data, _ := json.Marshal(event)
-		s.hub.broadcast <- data
+		s.broadcastEvent("agent_response", map[string]string{
+			"contactId": resp.ContactID,
+			"content":   resp.Content,
+		})
 	}
 }
 
 func (s *Server) listenForAgentQueued() {
 	for q := range s.agent.Queued() {
-		// Show typing indicator if delay is not disabled
-		cfg := db.GetConfig()
-		if cfg != nil && !cfg.DisableDelay {
-			c, ok := s.contacts.Get(q.ContactID)
-			if ok {
-				if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil {
-					if err := msgr.SendTypingIndicator(context.Background(), q.ContactID, true); err != nil {
-						slog.Error("Error showing typing indicator", "error", err)
-					}
-				}
-			}
-		}
+		s.sendTyping(q.ContactID, true)
 
-		// Broadcast the queued response to the UI
-		event := MessageEvent{
-			Type: "queued_response",
-			Payload: map[string]any{
-				"contactId": q.ContactID,
-				"content":   q.Content,
-				"sendAt":    q.SendAt,
-			},
-		}
-		data, _ := json.Marshal(event)
-		s.hub.broadcast <- data
+		s.broadcastEvent("queued_response", map[string]any{
+			"contactId": q.ContactID,
+			"content":   q.Content,
+			"sendAt":    q.SendAt,
+		})
 	}
 }
 
@@ -310,8 +289,6 @@ func (s *Server) getSummary(w http.ResponseWriter, r *http.Request) {
 			before = t
 		} else if ms, err := time.Parse("2006-01-02 15:04:05", beforeStr); err == nil {
 			before = ms
-		} else if unix, err := time.Parse("2006-01-02T15:04:05Z07:00", beforeStr); err == nil {
-			before = unix
 		}
 	}
 
@@ -321,10 +298,7 @@ func (s *Server) getSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"summary": summary}); err != nil {
-		slog.Error("Error encoding summary", "error", err)
-	}
+	writeJSON(w, map[string]string{"summary": summary})
 }
 
 func (s *Server) getMedia(w http.ResponseWriter, r *http.Request) {
@@ -362,11 +336,15 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) broadcastEvent(eventType string, payload any) {
-	event := MessageEvent{
-		Type:    eventType,
-		Payload: payload,
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		slog.Error("Error encoding JSON response", "error", err)
 	}
+}
+
+func (s *Server) broadcastEvent(eventType string, payload any) {
+	event := MessageEvent{Type: eventType, Payload: payload}
 	data, _ := json.Marshal(event)
 	s.hub.broadcast <- data
 }
@@ -490,10 +468,7 @@ func (s *Server) listAllContacts(w http.ResponseWriter, r *http.Request) {
 		response = []ContactResponse{}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, response)
 }
 
 type CreateContactRequest struct {
@@ -558,10 +533,7 @@ func (s *Server) getContact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
-		slog.Error("Error encoding contact response", "error", err)
-	}
+	writeJSON(w, contactToResponse(c))
 }
 
 type UpdateContactRequest struct {
@@ -599,10 +571,7 @@ func (s *Server) updateContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.broadcastEvent("contact_updated", contactToResponse(c))
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
-		slog.Error("Error encoding contact response", "error", err)
-	}
+	writeJSON(w, contactToResponse(c))
 }
 
 func (s *Server) deleteContact(w http.ResponseWriter, r *http.Request) {
@@ -643,10 +612,7 @@ func (s *Server) enableContact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.broadcastEvent("contact_enabled", contactToResponse(c))
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, response)
 }
 
 func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
@@ -664,10 +630,7 @@ func (s *Server) disableContact(w http.ResponseWriter, r *http.Request) {
 
 	c, _ := s.contacts.Get(id)
 	s.broadcastEvent("contact_disabled", contactToResponse(c))
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(contactToResponse(c)); err != nil {
-		slog.Error("Error encoding contact response", "error", err)
-	}
+	writeJSON(w, contactToResponse(c))
 }
 
 func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
@@ -740,10 +703,7 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.broadcastEvent("message_sent", messageToResponse(msg))
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(messageToResponse(msg)); err != nil {
-		slog.Error("Error encoding message response", "error", err)
-	}
+	writeJSON(w, messageToResponse(msg))
 }
 
 func (s *Server) syncConversation(w http.ResponseWriter, r *http.Request) {
@@ -804,10 +764,7 @@ func (s *Server) learnStyle(w http.ResponseWriter, r *http.Request) {
 
 	c, _ := s.contacts.Get(id)
 	s.broadcastEvent("style_learned", contactToResponse(c))
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"style": style}); err != nil {
-		slog.Error("Error encoding style response", "error", err)
-	}
+	writeJSON(w, map[string]string{"style": style})
 }
 
 func (s *Server) initiateConversation(w http.ResponseWriter, r *http.Request) {
@@ -819,38 +776,27 @@ func (s *Server) initiateConversation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, ok := s.contacts.Get(id)
-	if ok {
-		if msgr, ok := s.messengers[c.Messenger]; ok && msgr != nil && msg != "" {
-			if err := msgr.SendMessage(r.Context(), id, msg); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			// Record message in conversation history
-			messageRecord := messenger.Message{
-				ContactID: id,
-				Content:   msg,
-				Type:      messenger.TypeText,
-				Timestamp: time.Now(),
-				IsFromMe:  true,
-			}
-			if err := s.agent.RecordMessage(r.Context(), messageRecord); err != nil {
-				slog.Error("Error recording icebreaker message", "error", err)
+	if msg != "" {
+		c, ok := s.contacts.Get(id)
+		if ok {
+			msgr, ok := s.messengers[c.Messenger]
+			if ok && msgr != nil {
+				if err := msgr.SendMessage(r.Context(), id, msg); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				_ = s.agent.RecordMessage(r.Context(), messenger.Message{
+					ContactID: id,
+					Content:   msg,
+					Type:      messenger.TypeText,
+					Timestamp: time.Now(),
+					IsFromMe:  true,
+				})
 			}
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]string{"message": msg}); err != nil {
-		slog.Error("Error encoding message", "error", err)
-	}
-}
-
-type ResponseCheckResponse struct {
-	Needed     bool      `json:"needed"`
-	LastSender string    `json:"lastSender"`
-	LastAt     time.Time `json:"lastAt"`
+	writeJSON(w, map[string]string{"message": msg})
 }
 
 func (s *Server) checkResponse(w http.ResponseWriter, r *http.Request) {
@@ -862,14 +808,7 @@ func (s *Server) checkResponse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(ResponseCheckResponse{
-		Needed:     check.Needed,
-		LastSender: check.LastSender,
-		LastAt:     check.LastAt,
-	}); err != nil {
-		slog.Error("Error encoding check response", "error", err)
-	}
+	writeJSON(w, check)
 }
 
 type StatusResponse struct {
@@ -949,10 +888,7 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		Messengers:       messengers,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, response)
 }
 
 type MessengerLinkResponse struct {
@@ -977,10 +913,7 @@ func (s *Server) startMessengerLinking(w http.ResponseWriter, r *http.Request) {
 		QRCode: base64.StdEncoding.EncodeToString(qrCode),
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, response)
 }
 
 type MessengerLinkStatusResponse struct {
@@ -1026,18 +959,6 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 		}
 		s.ensureConnected(msgr)
 
-		// Auto-import contacts from messenger
-		go func() {
-			imported, err := s.contacts.ImportFromMessenger(r.Context(), msgr, mt)
-			if err != nil {
-				slog.Warn("Failed to import contacts from messenger", "messenger", mt, "error", err)
-				return
-			}
-			if imported > 0 {
-				slog.Info("Auto-imported contacts from messenger", "messenger", mt, "count", imported)
-			}
-		}()
-
 		// Pre-fill user profile from messenger profile
 		go func() {
 			if err := db.PrefillProfileFromMessenger(r.Context(), msgr, mt); err != nil {
@@ -1053,10 +974,7 @@ func (s *Server) getMessengerLinkStatus(w http.ResponseWriter, r *http.Request) 
 		Number: number,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, response)
 }
 
 type OnboardingRequest struct {
@@ -1144,10 +1062,18 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 
 	s.ensureConnected(msgr)
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
-		slog.Error("Error encoding success response", "error", err)
-	}
+	go func() {
+		imported, err := s.contacts.ImportFromMessenger(r.Context(), msgr, req.Type)
+		if err != nil {
+			slog.Warn("Failed to import contacts after onboarding", "messenger", req.Type, "error", err)
+			return
+		}
+		if imported > 0 {
+			slog.Info("Imported contacts after onboarding", "messenger", req.Type, "count", imported)
+		}
+	}()
+
+	writeJSON(w, map[string]bool{"success": true})
 }
 
 type MessengerContact struct {
@@ -1347,21 +1273,18 @@ type UserProfileResponse struct {
 	WritingStyle  string `json:"writingStyle"`
 }
 
+func toUserProfileResponse(p *db.UserProfile) UserProfileResponse {
+	return UserProfileResponse{
+		Name:          p.Name,
+		About:         p.About,
+		FamilyContext: p.FamilyContext,
+		WorkContext:   p.WorkContext,
+		WritingStyle:  p.WritingStyle,
+	}
+}
+
 func (s *Server) getUserProfile(w http.ResponseWriter, r *http.Request) {
-	profile := db.GetUserProfile()
-
-	response := UserProfileResponse{
-		Name:          profile.Name,
-		About:         profile.About,
-		FamilyContext: profile.FamilyContext,
-		WorkContext:   profile.WorkContext,
-		WritingStyle:  profile.WritingStyle,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+	writeJSON(w, toUserProfileResponse(db.GetUserProfile()))
 }
 
 type UpdateUserProfileRequest struct {
@@ -1391,41 +1314,23 @@ func (s *Server) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(UserProfileResponse{
-		Name:          profile.Name,
-		About:         profile.About,
-		FamilyContext: profile.FamilyContext,
-		WorkContext:   profile.WorkContext,
-		WritingStyle:  profile.WritingStyle,
-	}); err != nil {
-		slog.Error("Error encoding user profile response", "error", err)
-	}
+	writeJSON(w, toUserProfileResponse(profile))
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
-	hasAPIKey := s.config.APIKey != ""
-	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
-
-	data := PageData{
-		Page:         "settings",
-		Onboarded:    hasAPIKey && hasMessengerConfig,
-		HasMessenger: hasMessenger,
-		SidebarData:  s.getSidebarData(),
-	}
-
-	w.Header().Set("Content-Type", "text/html")
-	if err := s.templates.ExecuteTemplate(w, "base", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	s.renderPage(w, "settings")
 }
 
 func (s *Server) profilePage(w http.ResponseWriter, r *http.Request) {
+	s.renderPage(w, "profile")
+}
+
+func (s *Server) renderPage(w http.ResponseWriter, page string) {
 	hasAPIKey := s.config.APIKey != ""
 	hasMessenger, hasMessengerConfig := s.getMessengerStatus()
 
 	data := PageData{
-		Page:         "profile",
+		Page:         page,
 		Onboarded:    hasAPIKey && hasMessengerConfig,
 		HasMessenger: hasMessenger,
 		SidebarData:  s.getSidebarData(),
@@ -1444,18 +1349,17 @@ type ConfigResponse struct {
 	DisableDelay bool   `json:"disableDelay"`
 }
 
-func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
-	response := ConfigResponse{
-		APIKey:       s.config.APIKey,
-		Model:        s.config.Model,
-		BaseURL:      s.config.BaseURL,
-		DisableDelay: s.config.DisableDelay,
+func toConfigResponse(c *db.Config) ConfigResponse {
+	return ConfigResponse{
+		APIKey:       c.APIKey,
+		Model:        c.Model,
+		BaseURL:      c.BaseURL,
+		DisableDelay: c.DisableDelay,
 	}
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("Error encoding response", "error", err)
-	}
+func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, toConfigResponse(s.config))
 }
 
 type UpdateConfigRequest struct {
@@ -1501,15 +1405,7 @@ func (s *Server) updateConfig(w http.ResponseWriter, r *http.Request) {
 		s.agent.SetVision(llmClient)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(ConfigResponse{
-		APIKey:       s.config.APIKey,
-		Model:        s.config.Model,
-		BaseURL:      s.config.BaseURL,
-		DisableDelay: s.config.DisableDelay,
-	}); err != nil {
-		slog.Error("Error encoding config response", "error", err)
-	}
+	writeJSON(w, toConfigResponse(s.config))
 }
 
 func (s *Server) unlinkMessenger(w http.ResponseWriter, r *http.Request) {
