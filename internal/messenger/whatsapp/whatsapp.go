@@ -43,7 +43,9 @@ func New(dataDir string, baseURL string) (*Client, error) {
 		http:    &http.Client{Timeout: 30 * time.Second},
 	}
 
-	client.ensureDevice()
+	if err := client.ensureDevice(); err != nil {
+		return nil, err
+	}
 
 	if linked, number, _ := client.IsLinked(context.Background()); linked {
 		client.number = number

@@ -183,14 +183,13 @@ func (a *Agent) sendReaction(ctx context.Context, c contact.Contact, msg messeng
 		return err
 	}
 
-	a.RecordMessage(ctx, messenger.Message{
+	return a.RecordMessage(ctx, messenger.Message{
 		ContactID: msg.ContactID,
 		Type:      messenger.TypeReaction,
 		Reaction:  emoji,
 		Timestamp: time.Now(),
 		IsFromMe:  true,
 	})
-	return nil
 }
 
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
