@@ -24,6 +24,15 @@ TalkToThem learns your conversation style by analyzing your message history, the
 
 > **Note:** TalkToThem is designed for **1-on-1 conversations only**. Group chats are not currently supported.
 
+<div align="center">
+  <table>
+    <tr>
+      <td><img src="talk-to-them.png" alt="TalkToThem Dashboard" width="400"></td>
+      <td><img src="talk-to-them-msg.png" alt="TalkToThem Conversation" width="400"></td>
+    </tr>
+  </table>
+</div>
+
 ## Features
 
 - **Learns your voice**: Analyzes your conversation patterns and writing style
