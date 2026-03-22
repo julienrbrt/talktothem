@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -33,16 +34,18 @@ var upgrader = websocket.Upgrader{
 }
 
 type Server struct {
-	ctx        context.Context
-	server     *http.Server
-	router     *chi.Mux
-	agent      *agent.Agent
-	contacts   *contact.Manager
-	messengers map[string]messenger.Messenger
-	config     *db.Config
-	hub        *Hub
-	templates  *template.Template
-	assets     fs.FS
+	ctx             context.Context
+	server          *http.Server
+	router          *chi.Mux
+	agent           *agent.Agent
+	contacts        *contact.Manager
+	messengers      map[string]messenger.Messenger
+	config          *db.Config
+	hub             *Hub
+	templates       *template.Template
+	assets          fs.FS
+	learningStyle   bool
+	learningStyleMu sync.Mutex
 }
 
 type Hub struct {
@@ -821,6 +824,7 @@ type StatusResponse struct {
 	ConnectedCount   int                        `json:"connectedCount"`
 	ConnectionStatus string                     `json:"connectionStatus"`
 	Messengers       map[string]MessengerStatus `json:"messengers,omitempty"`
+	LearningStyle    bool                       `json:"learningStyle"`
 }
 
 type MessengerStatus struct {
@@ -888,9 +892,16 @@ func (s *Server) getStatus(w http.ResponseWriter, r *http.Request) {
 		ConnectedCount:   connected,
 		ConnectionStatus: connectionStatus,
 		Messengers:       messengers,
+		LearningStyle:    s.learningStyle,
 	}
 
 	writeJSON(w, response)
+}
+
+func (s *Server) setLearningStyle(v bool) {
+	s.learningStyleMu.Lock()
+	defer s.learningStyleMu.Unlock()
+	s.learningStyle = v
 }
 
 type MessengerLinkResponse struct {
@@ -1087,7 +1098,10 @@ func (s *Server) completeOnboarding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.agent != nil {
+		s.setLearningStyle(true)
 		go func() {
+			defer s.setLearningStyle(false)
+
 			synced, err := s.agent.SyncAllHistory(ctx, req.Type)
 			if err != nil {
 				slog.Warn("Failed to sync all history after onboarding", "messenger", req.Type, "error", err)

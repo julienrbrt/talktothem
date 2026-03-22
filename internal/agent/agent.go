@@ -272,7 +272,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 		fmt.Fprintf(&b, "Write in the same language %s is using. ", c.Name)
 	}
 	b.WriteString("Match the other person's energy and tone. Match your own typical message length and punctuation habits. ")
-	b.WriteString("If a reaction emoji is more natural than text (e.g. they shared something and you'd just react), reply with 'REACTION: ' followed by the emoji. ")
+	b.WriteString("Only send a reaction emoji if something is genuinely hilarious or remarkable — most messages deserve a text reply. If you do react, reply with 'REACTION: ' followed by a single emoji. ")
 	b.WriteString("One message only. No preamble. No explanation. Just your reply:")
 
 	return a.llm.Generate(ctx, b.String())
@@ -449,7 +449,7 @@ func (a *Agent) Run(ctx context.Context, in <-chan messenger.Message) {
 				continue
 			}
 
-			if time.Since(msg.Timestamp) > 2*time.Minute {
+			if time.Since(msg.Timestamp) > 10*time.Minute {
 				slog.Info("Agent Skipping stale message", "contactID", msg.ContactID, "age", time.Since(msg.Timestamp))
 				continue
 			}
@@ -522,17 +522,14 @@ func (a *Agent) calculateDelay(lastMsg messenger.Message, response string) time.
 		return 0
 	}
 
-	// Base delay: 2-5 seconds for "thinking" before typing starts
-	delay := time.Duration(2+(time.Now().UnixNano()%3)) * time.Second
+	delay := time.Duration(1+(time.Now().UnixNano()%2)) * time.Second
 
-	// Add typing time: ~200 chars per minute = ~3 chars per second, max 30s
-	typingTime := time.Duration(min(len(response)/3, 30)) * time.Second
+	typingTime := time.Duration(min(len(response)/8, 10)) * time.Second
 	delay += typingTime
 
-	// If the last message was very recent, add more delay to seem natural
 	timeSinceLast := time.Since(lastMsg.Timestamp)
-	if timeSinceLast < 10*time.Second {
-		delay += 10 * time.Second
+	if timeSinceLast < 5*time.Second {
+		delay += 3 * time.Second
 	}
 
 	return delay
@@ -544,8 +541,7 @@ func (a *Agent) calculateTypingDelay(response string) time.Duration {
 		return 0
 	}
 
-	// ~300 chars per minute = ~5 chars per second, scaled by message length, max 20s
-	typingTime := max(time.Duration(min(len(response)/5, 20))*time.Second, time.Second)
+	typingTime := max(time.Duration(min(len(response)/8, 10))*time.Second, time.Second)
 	return typingTime
 }
 
@@ -622,7 +618,7 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	b.WriteString("- NEVER reveal you are an AI, an assistant, a bot, or anything automated. NEVER break character.\n")
 	b.WriteString("- NEVER say things like 'as an AI', 'I'd be happy to help', 'great question', or anything that sounds like customer service.\n")
 	b.WriteString("- You don't make promises on behalf of the user — you ARE the user.\n")
-	b.WriteString("- If a reaction emoji fits better than text (e.g. they sent something funny and you'd just react), start your reply with 'REACTION: ' followed by the emoji.\n")
+	b.WriteString("- RARELY use reaction emojis. Only react to something genuinely hilarious or remarkable — most messages deserve a text reply. When you do react, start your reply with 'REACTION: ' followed by a single emoji.\n")
 	b.WriteString("- Keep it real. One message. Natural. Human.")
 
 	return b.String()

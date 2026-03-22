@@ -23,9 +23,15 @@
         ></div>
         {{if .Onboarded}}
         <div id="app" class="flex h-screen flex-col md:flex-row">
+            <div id="style-learning-banner" class="hidden fixed top-0 left-0 right-0 z-50 bg-purple-600 text-white text-center py-3 px-4 text-sm font-bold tracking-wide">
+                <span class="inline-flex items-center gap-2">
+                    <span class="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    Analyzing your messages to personalize the writing style...
+                </span>
+            </div>
             <div
                 id="mobile-header"
-                class="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between flex-shrink-0"
+                class="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between flex-shrink-0 transition-all duration-200"
             >
                 <button
                     onclick="openSidebar()"
@@ -289,6 +295,29 @@
                 updateConnectionStatus();
                 setInterval(updateConnectionStatus, 15000);
             }
+
+            (function pollLearningStyle() {
+                const banner = document.getElementById("style-learning-banner");
+                const mobileHeader = document.getElementById("mobile-header");
+                if (!banner) return;
+                const check = async () => {
+                    try {
+                        const res = await fetch("/api/status");
+                        const data = await res.json();
+                        if (data.learningStyle) {
+                            banner.classList.remove("hidden");
+                            if (mobileHeader) mobileHeader.style.paddingTop = "44px";
+                            setTimeout(check, 5000);
+                        } else {
+                            banner.classList.add("hidden");
+                            if (mobileHeader) mobileHeader.style.paddingTop = "";
+                        }
+                    } catch (e) {
+                        setTimeout(check, 10000);
+                    }
+                };
+                check();
+            })();
         </script>
     </body>
 </html>
