@@ -439,6 +439,8 @@ func (c *Client) GetConversation(ctx context.Context, contactID string, limit in
 			if m.URL != "" {
 				msg.MediaURLs = []string{m.URL}
 			}
+		} else {
+			msg.Type = messenger.TypeText
 		}
 
 		if strings.Contains(m.ChatJID, "@g.us") {
