@@ -154,12 +154,15 @@ func (a *Agent) LearnStyle(ctx context.Context, contactID string) (string, error
 Messages:
 %s
 
-Describe their texting in 3-5 sentences, the way you'd describe someone's vibe to a friend. Focus on:
-- What their energy is like (laid back? intense? dry? warm?) and how that shows in their messages
-- How they typically structure messages — short and clipped? chatty? one-liners?
+Describe their texting in 5-8 sentences, the way you'd describe someone's communication style to a friend. Cover:
+- What their energy is like (laid back? intense? dry? warm? sarcastic? deadpan?) and how that shows in their word choice
+- How they typically structure messages — short and clipped? chatty? one-liners? do they adapt to the other person?
+- Their emoji and punctuation habits — what feels natural vs forced for them
+- How they handle humor, agreements, disagreements, excitement, boredom
 - What they'd naturally NEVER do (e.g. they'd never say "that's great!" with three exclamation marks if they're deadpan)
+- Any recurring phrases, go-to words, or distinctive patterns
 
-Do NOT list numbered rules. Do NOT enumerate categories. Do NOT be prescriptive ("they should..."). Just paint a picture of how they text so someone could naturally mimic them.`, strings.Join(mine, "\n"))
+Do NOT list numbered rules. Do NOT enumerate categories. Do NOT be prescriptive ("they should..."). Just paint a detailed picture of how they text so someone could naturally mimic them.`, strings.Join(mine, "\n"))
 
 	return a.llm.Generate(ctx, prompt)
 }
@@ -193,11 +196,14 @@ func (a *Agent) LearnGlobalStyle(ctx context.Context) error {
 	prompt := "Study the messages below — all written by the same person across conversations. Write a natural feel profile of how they text.\n\n" +
 		"Messages:\n" +
 		strings.Join(texts, "\n") +
-		"\n\nDescribe their texting in 3-5 sentences, the way you'd describe someone's vibe to a friend. Focus on:\n" +
-		"- What their energy is like and how that shows in their messages\n" +
-		"- How they typically structure messages — short and clipped? chatty? one-liners?\n" +
-		"- What they'd naturally NEVER do\n\n" +
-		"Do NOT list numbered rules. Do NOT enumerate categories. Do NOT be prescriptive. Just paint a picture of how they text so someone could naturally mimic them."
+		"\n\nDescribe their texting in 5-8 sentences, the way you'd describe someone's communication style to a friend. Cover:\n" +
+		"- What their energy is like and how that shows in their word choice\n" +
+		"- How they typically structure messages — short and clipped? chatty? one-liners? do they adapt to the other person?\n" +
+		"- Their emoji and punctuation habits — what feels natural vs forced for them\n" +
+		"- How they handle humor, agreements, disagreements, excitement, boredom\n" +
+		"- What they'd naturally NEVER do\n" +
+		"- Any recurring phrases, go-to words, or distinctive patterns\n\n" +
+		"Do NOT list numbered rules. Do NOT enumerate categories. Do NOT be prescriptive. Just paint a detailed picture of how they text so someone could naturally mimic them."
 
 	style, err := a.llm.Generate(ctx, prompt)
 	if err != nil {
