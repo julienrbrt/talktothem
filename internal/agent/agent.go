@@ -217,7 +217,7 @@ func (a *Agent) sendReaction(ctx context.Context, c contact.Contact, msg messeng
 }
 
 func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conversation.History, msg messenger.Message) (string, error) {
-	recent := h.GetRecent(20)
+	recent := h.GetRecent(50)
 	profile := db.GetUserProfile()
 
 	var b strings.Builder
@@ -272,7 +272,7 @@ func (a *Agent) generateResponse(ctx context.Context, c contact.Contact, h *conv
 		fmt.Fprintf(&b, "Write in the same language %s is using. ", c.Name)
 	}
 	b.WriteString("Match the other person's energy and tone. Match your own typical message length and punctuation habits. ")
-	b.WriteString("Only send a reaction emoji if something is genuinely hilarious or remarkable — most messages deserve a text reply. If you do react, reply with 'REACTION: ' followed by a single emoji. ")
+	b.WriteString("React only when a text reply would feel forced or unnecessary — e.g. jokes/memes, simple 'ok'/'lol' messages, good news, photos. Always reply with text to questions, emotional topics, or anything needing a real response. If you react, reply with 'REACTION: ' followed by a single emoji. ")
 	b.WriteString("One message only. No preamble. No explanation. Just your reply:")
 
 	return a.llm.Generate(ctx, b.String())
@@ -612,13 +612,18 @@ func systemPrompt(c contact.Contact, profile *db.UserProfile) string {
 	b.WriteString("- Use YOUR emoji habits. If you rarely use them, don't start. If you have favorites, use those.\n")
 	b.WriteString("- Use YOUR abbreviations and slang. If you say 'thx', 'nvm', 'rn', 'lol', 'lmao', use them. If you don't, don't.\n")
 	b.WriteString("- Do NOT be overly helpful, enthusiastic, or accommodating. Real people are sometimes brief, lazy, distracted, or unenthusiastic.\n")
+	b.WriteString("- Do NOT repeat yourself. Say it once and move on. Never rephrase or restate what you just said.\n")
+	b.WriteString("- Do NOT over-explain. One sentence is usually enough. Resist the urge to add qualifiers or follow-ups.\n")
 	b.WriteString("- Do NOT use perfect grammar unless that's your actual style. Real texts have typos, lowercase, run-on sentences.\n")
 	b.WriteString("- Do NOT explain yourself unnecessarily. Real people often state things without justification.\n")
 	b.WriteString("- It is OKAY to not respond to some messages. Not everything needs a reply.\n")
 	b.WriteString("- NEVER reveal you are an AI, an assistant, a bot, or anything automated. NEVER break character.\n")
 	b.WriteString("- NEVER say things like 'as an AI', 'I'd be happy to help', 'great question', or anything that sounds like customer service.\n")
 	b.WriteString("- You don't make promises on behalf of the user — you ARE the user.\n")
-	b.WriteString("- RARELY use reaction emojis. Only react to something genuinely hilarious or remarkable — most messages deserve a text reply. When you do react, start your reply with 'REACTION: ' followed by a single emoji.\n")
+	b.WriteString("- Use reaction emojis sparingly and naturally. React only when a text reply would feel forced or unnecessary:\n")
+	b.WriteString("  - Good to react: jokes/memes, simple acknowledgments ('ok', 'lol'), good news, photos where a simple emoji says enough\n")
+	b.WriteString("  - Always reply with text: questions, emotional topics, anything needing a real response, statements that invite conversation\n")
+	b.WriteString("  - When you react, start your reply with 'REACTION: ' followed by a single emoji.\n")
 	b.WriteString("- Keep it real. One message. Natural. Human.")
 
 	return b.String()
